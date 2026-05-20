@@ -1,10 +1,10 @@
 import streamlit as st
 
 # --- PAGE CONFIGURATION ---
-# 'expanded' forces the sidebar to be open by default
+# This sets the Browser Tab Title to "Home" and adds a House icon
 st.set_page_config(
-    page_title="Career Compass",
-    page_icon="🚀",
+    page_title="Home | Career Compass",
+    page_icon="🏠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -12,7 +12,6 @@ st.set_page_config(
 # --- STYLING ---
 st.markdown("""
 <style>
-    /* Hero Section Style */
     .hero-section {
         background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
         padding: 60px 20px;
@@ -31,10 +30,6 @@ st.markdown("""
         font-size: 1.3rem;
         margin: 10px 0 0 0;
         opacity: 0.9;
-    }
-    /* Sidebar Style */
-    [data-testid="stSidebar"] {
-        width: 250px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -60,4 +55,4 @@ st.markdown("""
 
 st.divider()
 
-st.info("⚠️ **Note:** If you don't see the sidebar, click the little arrow icon in the top-left corner to expand the menu.")
+st.info("ℹ️ **Note:** Streamlit automatically labels the main page 'app' in the sidebar. This is a default setting, but your browser tab now correctly says 'Home'.")
