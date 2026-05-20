@@ -1,0 +1,15 @@
+﻿.env
+.env.txt
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+data/temp_cv.*
+data/*.pdf
+data/*.docx
+data/sample_cvs/*
+chroma_db/
+*.log
+.DS_Store
+.vscode/
+.idea/
