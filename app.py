@@ -5,51 +5,150 @@ import sys
 import time
 from urllib.parse import quote
 
+# Add modules to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
-from cv_parser import extract_text_from_file
-from cv_analyzer import analyze_cv
-from job_matcher import find_matching_jobs
-from cv_rewriter import rewrite_cv
-from cover_letter import generate_cover_letter
 
-st.set_page_config(page_title="AI Outplacement Assistant", layout="wide", initial_sidebar_state="collapsed")
+try:
+    from cv_parser import extract_text_from_file
+    from cv_analyzer import analyze_cv
+    from job_matcher import find_matching_jobs
+    from cv_rewriter import rewrite_cv
+    from cover_letter import generate_cover_letter
+except Exception as e:
+    st.error(f"⚠️ Error loading modules: {e}")
 
+# Page Config
+st.set_page_config(
+    page_title="Career Compass | AI Outplacement",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# --- CUSTOM CSS & THEME ---
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
-    .stButton>button {
+    /* General Styling */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    
+    body, p, h1, h2, h3, h4, h5, h6, span, label, div, a {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Hide Streamlit Branding */
+    #MainMenu {visibility: hidden;} 
+    footer {visibility: hidden;}
+    
+    /* Header Gradient */
+    .header-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600;
-    }
-    .section-header {font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem; border-bottom: 3px solid #667eea; padding-bottom: 0.5rem;}
-    .metric-label {font-size: 0.875rem; color: #64748b; font-weight: 500;}
-    .metric-value {font-size: 1.25rem; color: #1e293b; font-weight: 700;}
-    .job-card {background: #f8fafc; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #667eea; margin: 1rem 0;}
-    .score-high {color: #10b981; font-weight: bold;}
-    .score-med {color: #f59e0b; font-weight: bold;}
-    .score-low {color: #ef4444; font-weight: bold;}
-    .apply-btn {
-        display: inline-block;
-        background: #667eea;
+        padding: 2.5rem;
+        border-radius: 15px;
         color: white;
-        padding: 10px 20px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 600;
-        margin-top: 1rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
     }
-    .apply-btn:hover {background: #764ba2;}
+    .header-container h1 { margin: 0; font-size: 2.5rem; font-weight: 700; }
+    .header-container p { margin: 0.5rem 0 0 0; font-size: 1.1rem; opacity: 0.9; }
+
+    /* Section Cards */
+    .step-card {
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        margin-bottom: 2rem;
+        transition: transform 0.2s ease;
+    }
+    .step-card:hover { border-color: #667eea; }
+
+    .step-title {
+        color: #1e293b;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .step-badge {
+        background: #eff6ff;
+        color: #3b82f6;
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        width: 100%;
+        box-shadow: 0 4px 6px rgba(102, 126, 234, 0.2);
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Job Cards */
+    .job-card {
+        background: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border-left: 5px solid #667eea;
+        margin: 1rem 0;
+    }
+    .score-high { color: #10b981; font-weight: bold; }
+    .score-med { color: #f59e0b; font-weight: bold; }
+    .score-low { color: #ef4444; font-weight: bold; }
+
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
+# --- SIDEBAR: MISSION & NAV ---
+with st.sidebar:
+    st.markdown("###  Our Mission")
+    st.info("Career Compass is a community-driven project designed to provide **high-quality AI career support** to everyone, for free.")
+    
+    st.markdown("---")
+    st.markdown("**✨ Features**")
+    st.caption("• AI Resume Analysis")
+    st.caption("• Smart Job Matching")
+    st.caption("• Tailored Documents")
+    st.caption("• 100% Privacy First")
+    
+    st.markdown("---")
+    st.markdown("**🔒 Privacy Promise**")
+    st.success("Your CV and data are processed locally or via secure API calls. We do not store your data.")
+
+# --- MAIN CONTENT ---
+
+# 1. HEADER
 st.markdown("""
-<div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);'>
-    <h1 style='color: white; margin: 0; font-size: 2.5rem;'>🚀 AI Outplacement Assistant</h1>
-    <p style='color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 1.1rem;'>Free, privacy-first AI for career transitions</p>
+<div class="header-container">
+    <h1>🚀 Career Compass</h1>
+    <p>Your AI-powered partner for career transitions. Analyze, match, and apply with confidence.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Session State Init
+# Session State Initialization
 for key in ['cv_text', 'analysis', 'matches', 'selected_job', 'rewritten_cv', 'cover_letter']:
     if key not in st.session_state: st.session_state[key] = None
 
@@ -57,58 +156,75 @@ def reset_app():
     for key in st.session_state.keys(): del st.session_state[key]
     st.rerun()
 
+# Reset Button
 if st.session_state.cv_text:
-    if st.button("🔄 Reset App", use_container_width=True): reset_app()
+    if st.button("🔄 Start New Analysis"):
+        reset_app()
 
-# Step 1
-st.markdown('<div class="section-header">📄 Step 1: Upload Your CV</div>', unsafe_allow_html=True)
-uploaded_file = st.file_uploader("Choose PDF or DOCX", type=['pdf', 'docx'], label_visibility="collapsed")
+# --- STEP 1: UPLOAD ---
+st.markdown("""
+<div class="step-card">
+    <div class="step-title">📄 Step 1: Upload Your CV</div>
+    <p style="color: #64748b; margin-bottom: 1rem;">Upload your current resume (PDF or DOCX) so our AI can understand your background.</p>
+""", unsafe_allow_html=True)
+
+uploaded_file = st.file_uploader("", type=['pdf', 'docx'], label_visibility="collapsed")
 
 if uploaded_file and st.session_state.cv_text is None:
-    with st.spinner("📖 Reading CV..."):
+    with st.spinner(" Reading CV..."):
         save_path = os.path.join("data", f"temp_cv.{uploaded_file.name.split('.')[-1]}")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "wb") as f: f.write(uploaded_file.getbuffer())
         st.session_state.cv_text = extract_text_from_file(save_path)
-        st.success("✅ CV loaded!")
+        st.success("✅ CV loaded successfully!")
         st.rerun()
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# Step 2
-st.markdown('<div class="section-header">🔍 Step 2: Analyze CV</div>', unsafe_allow_html=True)
+# --- STEP 2: ANALYZE ---
+st.markdown("""
+<div class="step-card">
+    <div class="step-title">🔍 Step 2: AI Analysis</div>
+""", unsafe_allow_html=True)
+
 if st.session_state.cv_text:
-    if st.button("✨ Analyze CV"):
-        with st.spinner("🤖 Analyzing..."):
+    if st.button("✨ Analyze My Profile", use_container_width=True):
+        with st.spinner("🤖 Analyzing experience and skills..."):
             st.session_state.analysis = analyze_cv(st.session_state.cv_text)
-            st.success("✅ Done!")
+            st.success("✅ Analysis Complete!")
     
     if st.session_state.analysis:
         c1, c2, c3 = st.columns(3)
-        c1.metric("Sector", st.session_state.analysis.get('current_sector', 'N/A'))
-        c2.metric("Level", st.session_state.analysis.get('seniority_level', 'N/A'))
-        c3.metric("Top Skills", ', '.join(st.session_state.analysis.get('top_5_skills', [])[:3]))
+        c1.metric("🏢 Current Sector", st.session_state.analysis.get('current_sector', 'N/A'))
+        c2.metric("📈 Seniority Level", st.session_state.analysis.get('seniority_level', 'N/A'))
+        c3.metric("️ Top Skills", ', '.join(st.session_state.analysis.get('top_5_skills', [])[:3]))
 else:
-    st.info("👆 Upload CV first")
+    st.info("👆 Please upload your CV in Step 1 first.")
 
+st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 
-# Step 3: ENHANCED JOB SEARCH
-st.markdown('<div class="section-header">🎯 Step 3: Find Matching Jobs</div>', unsafe_allow_html=True)
+# --- STEP 3: JOBS ---
+st.markdown("""
+<div class="step-card">
+    <div class="step-title">🎯 Step 3: Find Matching Jobs</div>
+""", unsafe_allow_html=True)
 
 if st.session_state.cv_text:
-    with st.expander("🔧 Customize Job Search Filters", expanded=False):
+    with st.expander("🔧 Customize Search Filters", expanded=False):
         col_a, col_b = st.columns(2)
-        keywords = col_a.text_input("Keywords / Job Title", value="Strategy Consultant")
-        location = col_b.text_input("Location", value="Singapore")
+        keywords = col_a.text_input("Target Job Title", value="Strategy Consultant")
+        location = col_b.text_input("Target Location", value="Singapore")
     
-    if st.button("🔍 Search Jobs (AI-Powered)"):
-        with st.spinner("🔎 Fetching & scoring jobs..."):
+    if st.button("🔍 Search Jobs (AI-Powered)", use_container_width=True):
+        with st.spinner("🔎 Scanning opportunities & scoring matches..."):
             st.session_state.matches = find_matching_jobs(st.session_state.cv_text, keywords, location, num_matches=3)
             if st.session_state.matches:
                 st.success(f"✅ Found {len(st.session_state.matches)} top matches!")
             else:
-                st.warning("No matches found. Try different keywords.")
+                st.warning("No matches found. Try broadening your keywords.")
 
     if st.session_state.matches:
         st.markdown("### 💼 Top Matches (AI Scored)")
@@ -122,72 +238,87 @@ if st.session_state.cv_text:
             
             score_color = "score-high" if job.get('score',0) > 80 else ("score-med" if job.get('score',0) > 60 else "score-low")
             
-            st.write(f"🔗 **Apply Link Value:** `{job.get('apply_link', 'NOT FOUND')}`")
-            
-            # Get apply link - ALWAYS use Google search as fallback
             apply_link = job.get('apply_link')
-            
-            # If no apply link or it's empty/None/#, use Google search
-            if not apply_link or apply_link == '#' or apply_link.strip() == '':
-                # Create Google search URL
+            if not apply_link or apply_link.strip() == '':
                 search_query = f"apply {job.get('title', '')} {job.get('company', '')} {job.get('location', '')}"
                 apply_link = f"https://www.google.com/search?q={quote(search_query)}"
-                st.info(f"ℹ️ No direct application link found. Clicking will search Google for: **{job.get('title')} at {job.get('company')}**")
+                st.info(f"ℹ️ No direct link found. This will search Google for the role.")
             
             st.markdown(f"""
             <div class="job-card">
-                <h3 style="margin:0 0 0.5rem 0;">🎯 {job['title']}</h3>
-                <p style="margin:0; color:#64748b;"><strong>Company:</strong> {job['company']} | <strong>Location:</strong> {job['location']}</p>
+                <h3 style="margin:0 0 0.5rem 0;"> {job['title']}</h3>
+                <p style="margin:0; color:#64748b;"><strong>{job['company']}</strong> • {job['location']}</p>
                 <p style="margin:0.5rem 0;"><strong>Match Score:</strong> <span class="{score_color}">{job.get('score', 'N/A')}%</span></p>
+                
                 <p><strong>✅ Why it matches:</strong></p>
-                <ul style="margin-top:-1rem;">
+                <ul style="margin-top:-1rem; color:#475569;">
                     {''.join(f'<li>{r}</li>' for r in job.get('reasons', []))}
                 </ul>
                 <p><strong>⚠️ Potential Gaps:</strong></p>
-                <ul style="margin-top:-1rem;">
+                <ul style="margin-top:-1rem; color:#475569;">
                     {''.join(f'<li>{g}</li>' for g in job.get('gaps', []))}
                 </ul>
-                <a href="{apply_link}" target="_blank" rel="noopener noreferrer" class="apply-btn">🔗 Apply Now</a>
             </div>
             """, unsafe_allow_html=True)
+            
+            st.link_button("🔗 Apply Now", apply_link)
 else:
-    st.info("👆 Upload CV first")
+    st.info(" Analyze your CV first.")
 
+st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 
-# Step 4
-st.markdown('<div class="section-header">📝 Step 4: Tailor Your CV</div>', unsafe_allow_html=True)
+# --- STEP 4: CV ---
+st.markdown("""
+<div class="step-card">
+    <div class="step-title">📝 Step 4: Tailor Your CV</div>
+""", unsafe_allow_html=True)
+
 if st.session_state.cv_text and st.session_state.selected_job:
-    if st.button("✏️ Rewrite CV"):
-        with st.spinner("✍️ Tailoring..."):
+    if st.button("✏️ Generate Tailored CV", use_container_width=True):
+        with st.spinner("✍️ Optimizing your CV for this role..."):
             st.session_state.rewritten_cv = rewrite_cv(st.session_state.cv_text, st.session_state.selected_job['title'], st.session_state.selected_job.get('description', ''))
             st.success("✅ Done!")
     
     if st.session_state.rewritten_cv:
         st.markdown(st.session_state.rewritten_cv)
         st.download_button("📥 Download as TXT", st.session_state.rewritten_cv, 
-                          file_name=f"tailored_cv_{st.session_state.selected_job['company'].replace(' ','_')}.txt", mime="text/plain")
-        st.info("💡 **Pro Tip:** Download TXT → Open in Word → Save As PDF for best formatting.")
+                          file_name=f"tailored_cv_{st.session_state.selected_job['company'].replace(' ','_')}.txt", 
+                          mime="text/plain",
+                          use_container_width=True)
 else:
-    st.info("👆 Complete Steps 1-3 first")
+    st.info("👆 Select a job in Step 3 first.")
 
+st.markdown("</div>", unsafe_allow_html=True)
 st.divider()
 
-# Step 5
-st.markdown('<div class="section-header">✉️ Step 5: Generate Cover Letter</div>', unsafe_allow_html=True)
+# --- STEP 5: COVER LETTER ---
+st.markdown("""
+<div class="step-card">
+    <div class="step-title">✉️ Step 5: Generate Cover Letter</div>
+""", unsafe_allow_html=True)
+
 if st.session_state.cv_text and st.session_state.selected_job:
-    if st.button("📄 Generate Letter"):
-        with st.spinner("✍️ Writing..."):
+    if st.button(" Write Cover Letter", use_container_width=True):
+        with st.spinner("✍️ Drafting your letter..."):
             st.session_state.cover_letter = generate_cover_letter(st.session_state.cv_text, st.session_state.selected_job['title'], st.session_state.selected_job.get('description', ''))
             st.success("✅ Done!")
     
     if st.session_state.cover_letter:
         st.markdown(st.session_state.cover_letter)
         st.download_button("📥 Download as TXT", st.session_state.cover_letter,
-                          file_name=f"cover_letter_{st.session_state.selected_job['company'].replace(' ','_')}.txt", mime="text/plain")
-        st.info("💡 **Pro Tip:** Download TXT → Open in Word → Save As PDF for best formatting.")
+                          file_name=f"cover_letter_{st.session_state.selected_job['company'].replace(' ','_')}.txt", 
+                          mime="text/plain",
+                          use_container_width=True)
 else:
-    st.info("👆 Complete Steps 1-3 first")
+    st.info("👆 Select a job in Step 3 first.")
 
+st.markdown("</div>", unsafe_allow_html=True)
+
+# --- FOOTER ---
 st.divider()
-st.caption("🔒 Privacy-first: All data stays on your device. Built with ❤️ using Streamlit & Groq")
+st.markdown("""
+<div style="text-align: center; color: #94a3b8; font-size: 0.9rem; margin-top: 2rem;">
+    <p>Built with ❤️ for the community • Privacy-First AI • Powered by Streamlit & Groq</p>
+</div>
+""")
