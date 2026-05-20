@@ -28,14 +28,11 @@ st.markdown("""
 # Header
 st.markdown("""
 <div class="hero-box">
-    <h1 class="hero-title">🚀 Welcome to Career Compass</h1>
+    <h1 class="hero-title">Welcome to Career Compass</h1>
     <p style="font-size: 1.3rem">Professional AI-Powered Outplacement Services</p>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-### 👋 How It Works
-
-Career Compass helps you navigate your career transition with AI-powered tools:
-
-**📋 Services Page** - Upload your CV, get analyzed, find jobs, and generate
+st.markdown("### How It Works")
+st.markdown("Career Compass helps you navigate your career transition with AI-powered tools:")
+st.markdown("- **Services Page** - Upload your CV, get analyzed, find jobs
