@@ -1,13 +1,13 @@
 ﻿import streamlit as st
+import os
+import sys
+from urllib.parse import quote
 
 st.set_page_config(page_title="Services", page_icon="📋", layout="wide")
 
-st.markdown("# 📋 Services")
+st.title("📋 Services")
 st.markdown("### Upload your CV and start your career transition")
 
-# Import modules
-import os, sys
-from urllib.parse import quote
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'modules'))
 
 try:
@@ -19,11 +19,10 @@ try:
 except Exception as e:
     st.error(f"Error loading modules: {e}")
 
-# Session state
 for key in ['cv_text', 'analysis', 'matches', 'selected_job', 'rewritten_cv', 'cover_letter']:
-    if key not in st.session_state: st.session_state[key] = None
+    if key not in st.session_state: 
+        st.session_state[key] = None
 
-# Step 1
 st.header("1️⃣ Upload Your CV")
 uploaded_file = st.file_uploader("Choose PDF or DOCX", type=['pdf', 'docx'])
 
@@ -31,14 +30,14 @@ if uploaded_file and st.session_state.cv_text is None:
     with st.spinner("Reading..."):
         save_path = os.path.join("data", f"temp_cv.{uploaded_file.name.split('.')[-1]}")
         os.makedirs("data", exist_ok=True)
-        with open(save_path, "wb") as f: f.write(uploaded_file.getbuffer())
+        with open(save_path, "wb") as f: 
+            f.write(uploaded_file.getbuffer())
         st.session_state.cv_text = extract_text_from_file(save_path)
         st.success("✅ CV loaded!")
         st.rerun()
 
 st.divider()
 
-# Step 2
 st.header("2️⃣ Analyze Profile")
 if st.session_state.cv_text:
     if st.button("✨ Analyze CV", use_container_width=True):
@@ -56,7 +55,6 @@ else:
 
 st.divider()
 
-# Step 3
 st.header("3️⃣ Find Matching Jobs")
 if st.session_state.cv_text:
     keywords = st.text_input("Target Job", value="Strategy Consultant")
@@ -90,7 +88,6 @@ else:
 
 st.divider()
 
-# Step 4 & 5
 c1, c2 = st.columns(2)
 
 with c1:

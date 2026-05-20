@@ -2,7 +2,7 @@
 
 st.set_page_config(page_title="Contact", page_icon="📞")
 
-st.markdown("# 📞 Contact Us")
+st.title("📞 Contact Us")
 
 st.markdown("""
 ### 📧 Get In Touch
@@ -23,9 +23,3 @@ with st.form("contact_form"):
     
     if submitted:
         st.success("✅ Thank you for your message! We'll get back to you soon.")
-
-st.markdown("""
-### 💬 Community Support
-
-Join our community of professionals supporting each other through career transitions.
-""")

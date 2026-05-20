@@ -2,7 +2,7 @@
 
 st.set_page_config(page_title="About", page_icon="ℹ️")
 
-st.markdown("# ℹ️ About Us")
+st.title("ℹ️ About Us")
 
 st.markdown("""
 ### 🎯 Our Mission
@@ -20,9 +20,7 @@ Career Compass is a **community-driven project** dedicated to providing free, hi
 ### 💡 Why We Built This
 
 Career transitions are challenging. Traditional outplacement services are expensive and inaccessible. We believe everyone deserves access to professional career support, regardless of budget.
-
-By leveraging AI technology, we deliver enterprise-level career support to anyone, anywhere, completely free.
 """)
 
-st.markdown("---")
+st.divider()
 st.caption("Built with ❤️ for the community")
