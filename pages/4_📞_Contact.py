@@ -1,67 +1,34 @@
 import streamlit as st
 
-st.set_page_config(page_title="Contact | Career Compass", page_icon="📞")
+# --- NAVIGATION BAR ---
+st.markdown("""<style>.nav-bar{background:white;padding:15px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.1);display:flex;justify-content:center;gap:2rem;margin-bottom:2rem;border-radius:8px;}</style>""", unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+with col1: st.page_link("app.py", label="🏠 Home")
+with col2: st.page_link("pages/1_🏠_Home.py", label="📋 Services")
+with col3: st.page_link("pages/3_ℹ️_About.py", label="ℹ️ About")
+with col4: st.page_link("pages/4_📞_Contact.py", label=" Contact")
 
 st.markdown("""
-<style>
-    .contact-box {
-        background: white;
-        padding: 3rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        margin: 2rem 0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 3rem 2rem; border-radius: 15px; color: white; text-align: center; margin-bottom: 2rem;">
-    <h1 style="margin: 0; font-size: 2.5rem;">Contact Us</h1>
-    <p style="margin: 1rem 0 0 0; font-size: 1.2rem;">We're here to help you succeed</p>
+<div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 2rem; border-radius: 15px; color: white; text-align: center; margin-bottom: 2rem;">
+    <h1 style="margin:0">📞 Contact Us</h1>
+    <p style="margin:0.5rem 0 0 0">We'd love to hear from you</p>
 </div>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown("""
-    <div class="contact-box">
-        <h3>📧 Email Us</h3>
-        <p style="font-size: 1.1rem; color: #64748b;">For general inquiries:</p>
-        <p style="font-size: 1.2rem; font-weight: 600; color: #3b82f6;">support@careercompass.ai</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""
-    <div class="contact-box">
-        <h3>💬 Feedback</h3>
-        <p style="font-size: 1.1rem; color: #64748b;">Help us improve:</p>
-        <p style="font-size: 1.2rem; font-weight: 600; color: #3b82f6;">feedback@careercompass.ai</p>
-    </div>
-    """, unsafe_allow_html=True)
-
 st.markdown("""
-<div class="contact-box">
-    <h3>📝 Send Us a Message</h3>
-    <p style="color: #64748b;">We typically respond within 24 hours</p>
+<div style="background:#f8fafc; padding:2rem; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:2rem;">
+    <h3>📧 Email Support</h3>
+    <p style="color:#64748b">For technical issues or inquiries:</p>
+    <p style="font-weight:700; color:#3b82f6">support@careercompass.ai</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("### 💬 Send a Message")
+with st.form("contact"):
+    name = st.text_input("Name")
+    email = st.text_input("Email")
+    msg = st.text_area("Message")
+    submit = st.form_submit_button("Send")
     
-    With st.form("contact_form"):
-        name = st.text_input("Your Name")
-        email = st.text_input("Your Email")
-        subject = st.selectbox("Subject", ["General Inquiry", "Technical Support", "Feedback", "Other"])
-        message = st.text_area("Message", height=150)
-        
-        submitted = st.form_submit_button("Send Message", use_container_width=True)
-        
-        if submitted:
-            st.success("✅ Thank you for your message! We'll get back to you soon.")
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style="background: #f0f9ff; padding: 2rem; border-radius: 15px; text-align: center; margin: 2rem 0;">
-    <h3> Community Support</h3>
-    <p>Join our community of professionals supporting each other through career transitions.</p>
-</div>
-""", unsafe_allow_html=True)
+    if submit:
+        st.success("✅ Thanks! We'll get back to you soon.")
