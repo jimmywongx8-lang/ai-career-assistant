@@ -4,6 +4,7 @@ import requests
 import streamlit as st
 from typing import Optional, List, Dict
 from datetime import datetime
+import time
 
 
 class JSearchClient:
@@ -20,16 +21,16 @@ class JSearchClient:
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
     
-    @st.cache_data(ttl=3600, show_spinner="🔍 Fetching smart job matches...")
+    @st.cache_data(ttl=1800, show_spinner="🔍 Fetching smart job matches...")
     def search_jobs(_self, 
                    query: str,
                    location: Optional[str] = None,
                    employment_types: Optional[List[str]] = None,
-                   date_posted: str = "week",
+                   date_posted: str = "all",
                    num_pages: int = 1,
                    country: str = "us",
                    user_skills: Optional[List[str]] = None) -> Dict:
-        """Search jobs with caching"""
+        """Search jobs with caching and retry logic"""
         
         # Validate query
         if not query or not query.strip():
@@ -52,77 +53,87 @@ class JSearchClient:
         if employment_types and len(employment_types) > 0:
             params["employment_types"] = ",".join(employment_types)
         
-        try:
-            response = requests.get(
-                f"{_self.BASE_URL}/search-v2",
-                headers=_self.headers,
-                params=params,
-                timeout=30
-            )
-            
-            if response.status_code == 400:
-                try:
-                    error_json = response.json()
-                    error_msg = str(error_json)
-                except:
-                    error_msg = response.text[:200]
-                st.error(f"API Error 400: {error_msg}")
-                return {"data": [], "status": "error", "message": error_msg}
-            
-            elif response.status_code == 401:
-                st.error("API Error 401: Invalid API Key")
-                return {"data": [], "status": "error", "message": "Invalid API key"}
-                
-            elif response.status_code == 429:
-                st.error("API Error 429: Rate Limit Exceeded")
-                return {"data": [], "status": "error", "message": "Rate limit"}
-            
-            response.raise_for_status()
-            
+        # Retry logic
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
-                data = response.json()
-            except ValueError as e:
-                st.error(f"Failed to parse API response: {e}")
-                return {"data": [], "status": "error", "message": "Invalid JSON"}
-            
-            if not isinstance(data, dict):
-                st.error(f"Unexpected response format: {type(data).__name__}")
-                return {"data": [], "status": "error", "message": "Invalid format"}
-            
-            jobs_list = data.get("data", [])
-            if not jobs_list:
-                st.info("No jobs found for this search")
-                return {"data": [], "status": data.get("status", "unknown")}
-            
-            # Process jobs
-            processed_jobs = []
-            for job in jobs_list:
-                if not isinstance(job, dict):
-                    continue
+                response = requests.get(
+                    f"{_self.BASE_URL}/search-v2",
+                    headers=_self.headers,
+                    params=params,
+                    timeout=60  # Increased from 30 to 60 seconds
+                )
                 
-                job["career_compass_match_score"] = _self._calculate_match_score(
-                    job, query, user_skills
+                if response.status_code == 400:
+                    try:
+                        error_json = response.json()
+                        error_msg = str(error_json)
+                    except:
+                        error_msg = response.text[:200]
+                    st.error(f"API Error 400: {error_msg}")
+                    return {"data": [], "status": "error", "message": error_msg}
+                
+                elif response.status_code == 401:
+                    st.error("API Error 401: Invalid API Key")
+                    return {"data": [], "status": "error", "message": "Invalid API key"}
+                    
+                elif response.status_code == 429:
+                    st.error("API Error 429: Rate Limit Exceeded")
+                    return {"data": [], "status": "error", "message": "Rate limit"}
+                
+                response.raise_for_status()
+                
+                try:
+                    data = response.json()
+                except ValueError as e:
+                    st.error(f"Failed to parse API response: {e}")
+                    return {"data": [], "status": "error", "message": "Invalid JSON"}
+                
+                if not isinstance(data, dict):
+                    st.error(f"Unexpected response format: {type(data).__name__}")
+                    return {"data": [], "status": "error", "message": "Invalid format"}
+                
+                jobs_list = data.get("data", [])
+                if not jobs_list:
+                    st.info("No jobs found for this search")
+                    return {"data": [], "status": data.get("status", "unknown")}
+                
+                # Process jobs
+                processed_jobs = []
+                for job in jobs_list:
+                    if not isinstance(job, dict):
+                        continue
+                    
+                    job["career_compass_match_score"] = _self._calculate_match_score(
+                        job, query, user_skills
+                    )
+                    job["fetched_at"] = datetime.now().isoformat()
+                    job["normalized_salary"] = _self._normalize_salary(
+                        job.get("estimated_salaries")
+                    )
+                    processed_jobs.append(job)
+                
+                processed_jobs.sort(
+                    key=lambda x: x.get("career_compass_match_score", 0), 
+                    reverse=True
                 )
-                job["fetched_at"] = datetime.now().isoformat()
-                job["normalized_salary"] = _self._normalize_salary(
-                    job.get("estimated_salaries")
-                )
-                processed_jobs.append(job)
-            
-            processed_jobs.sort(
-                key=lambda x: x.get("career_compass_match_score", 0), 
-                reverse=True
-            )
-            
-            data["data"] = processed_jobs
-            return data
-            
-        except requests.exceptions.Timeout:
-            st.error("Job search timed out")
-            return {"data": [], "status": "error", "message": "timeout"}
-        except Exception as e:
-            st.error(f"Unexpected error: {str(e)}")
-            return {"data": [], "status": "error", "message": str(e)}
+                
+                data["data"] = processed_jobs
+                return data
+                
+            except requests.exceptions.Timeout:
+                if attempt < max_retries - 1:
+                    st.warning(f"⏱️ Timeout (attempt {attempt + 1}/{max_retries}). Retrying in 5 seconds...")
+                    time.sleep(5)
+                    continue
+                else:
+                    st.error("⏱️ Job search timed out after 3 attempts. Please try again later.")
+                    return {"data": [], "status": "error", "message": "timeout"}
+            except Exception as e:
+                st.error(f"Unexpected error: {str(e)}")
+                return {"data": [], "status": "error", "message": str(e)}
+        
+        return {"data": [], "status": "error", "message": "Max retries exceeded"}
     
     def _calculate_match_score(_self, job: Dict, query: str, 
                             user_skills: Optional[List[str]] = None) -> float:
