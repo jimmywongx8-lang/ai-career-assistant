@@ -36,18 +36,6 @@ class JSearchClient:
                    user_skills: Optional[List[str]] = None) -> Dict:
         """
         Search jobs with intelligent caching and career-matching logic
-        
-        Args:
-            query: Job title or keywords (e.g., "senior python developer")
-            location: City, state, or "Remote"
-            employment_types: List like ["FULLTIME", "CONTRACTOR"]
-            date_posted: "all", "today", "3days", "week", "month"
-            num_pages: Number of result pages (1-10)
-            country: 2-letter country code (default: "us")
-            user_skills: List of skills from CV analysis for matching
-            
-        Returns:
-            Dict with 'data' list of jobs + metadata
         """
         # Build query with location if provided
         search_query = f"{query} in {location}" if location else query
@@ -90,7 +78,20 @@ class JSearchClient:
                 return {"data": [], "status": "error", "message": "Rate limit"}
             
             response.raise_for_status()
-            data = response.json()
+            
+            # Parse JSON response
+            try:
+                data = response.json()
+            except ValueError as e:
+                st.error(f"❌ Failed to parse API response: {e}")
+                st.error(f"Response text: {response.text[:200]}")
+                return {"data": [], "status": "error", "message": "Invalid JSON response"}
+            
+            # Ensure data is a dictionary
+            if not isinstance(data, dict):
+                st.error(f"❌ Unexpected API response format: {type(data)}")
+                st.error(f"Response: {str(data)[:200]}")
+                return {"data": [], "status": "error", "message": "Invalid response format"}
             
             # Enhance results with Career Compass matching
             if data.get("status") == "OK" and data.get("data"):
