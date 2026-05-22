@@ -1,13 +1,11 @@
 import requests
 import streamlit as st
-from typing import Optional, List, Dict
 from datetime import datetime
 import time
 
-
 class JSearchClient:
     BASE_URL = "https://jsearch.p.rapidapi.com"
-    
+
     def __init__(self, api_key):
         if not api_key:
             raise ValueError("JSearch API key is required")
@@ -16,7 +14,7 @@ class JSearchClient:
             "X-RapidAPI-Key": api_key,
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
-    
+
     @st.cache_data(ttl=1800, show_spinner="Fetching job matches...")
     def search_jobs(_self, query, location=None, employment_types=None, 
                    date_posted="all", num_pages=1, country="us", user_skills=None):
@@ -53,11 +51,9 @@ class JSearchClient:
                     error_msg = response.text[:200] if response.text else "Bad Request"
                     st.error("API Error 400: " + error_msg)
                     return {"data": [], "status": "error", "message": error_msg}
-                
                 elif response.status_code == 401:
                     st.error("API Error 401: Invalid API Key")
                     return {"data": [], "status": "error", "message": "Invalid API key"}
-                    
                 elif response.status_code == 429:
                     st.error("API Error 429: Rate Limit Exceeded")
                     return {"data": [], "status": "error", "message": "Rate limit"}
@@ -78,21 +74,12 @@ class JSearchClient:
                 for job in jobs_list:
                     if not isinstance(job, dict):
                         continue
-                    
-                    job["career_compass_match_score"] = _self._calculate_match_score(
-                        job, query, user_skills
-                    )
+                    job["career_compass_match_score"] = _self._calculate_match_score(job, query, user_skills)
                     job["fetched_at"] = datetime.now().isoformat()
-                    job["normalized_salary"] = _self._normalize_salary(
-                        job.get("estimated_salaries")
-                    )
+                    job["normalized_salary"] = _self._normalize_salary(job.get("estimated_salaries"))
                     processed_jobs.append(job)
                 
-                processed_jobs.sort(
-                    key=lambda x: x.get("career_compass_match_score", 0), 
-                    reverse=True
-                )
-                
+                processed_jobs.sort(key=lambda x: x.get("career_compass_match_score", 0), reverse=True)
                 data["data"] = processed_jobs
                 return data
                 
@@ -113,7 +100,6 @@ class JSearchClient:
     def _calculate_match_score(_self, job, query, user_skills=None):
         if not isinstance(job, dict):
             return 0.0
-            
         job_description = job.get("job_description", "")
         if not job_description:
             return 0.0
@@ -128,8 +114,7 @@ class JSearchClient:
         
         if user_skills and job.get("job_required_skills"):
             job_skills = [s.lower() for s in job["job_required_skills"]]
-            skill_matches = sum(1 for skill in user_skills 
-                              if any(skill.lower() in js for js in job_skills))
+            skill_matches = sum(1 for skill in user_skills if any(skill.lower() in js for js in job_skills))
             score += 0.5 * min(1.0, skill_matches / max(1, len(user_skills)))
         
         return min(1.0, round(score, 2))
@@ -137,12 +122,10 @@ class JSearchClient:
     def _normalize_salary(_self, salary_data):
         if not salary_data or not isinstance(salary_data, list):
             return None
-        
         try:
             salary = salary_data[0]
             if not isinstance(salary, dict):
                 return None
-                
             min_sal = salary.get("min", 0)
             max_sal = salary.get("max", 0)
             currency = salary.get("currency", "USD")
@@ -156,18 +139,8 @@ class JSearchClient:
                 max_sal = max_sal * 12
             
             if currency != "USD":
-                return {
-                    "min_annual_usd": None,
-                    "max_annual_usd": None,
-                    "original": salary,
-                    "note": "Currency: " + currency
-                }
+                return {"min_annual_usd": None, "max_annual_usd": None, "original": salary, "note": "Currency: " + currency}
             
-            return {
-                "min_annual_usd": int(min_sal),
-                "max_annual_usd": int(max_sal),
-                "currency": "USD",
-                "period": "YEAR"
-            }
+            return {"min_annual_usd": int(min_sal), "max_annual_usd": int(max_sal), "currency": "USD", "period": "YEAR"}
         except (IndexError, TypeError, KeyError, AttributeError):
             return None
