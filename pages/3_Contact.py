@@ -9,7 +9,7 @@ st.markdown("""
 
 We'd love to hear from you!
 
-**Email:** support@careercompass.ai  
+**Email:** career.aisupport@gmail.com  
 **Response Time:** Within 24 hours
 """)
 
@@ -23,3 +23,9 @@ with st.form("contact_form"):
     
     if submitted:
         st.success("✅ Thank you for your message! We'll get back to you soon.")
+
+st.markdown("""
+### 💬 Community Support
+
+Join our community of professionals supporting each other through career transitions.
+""")
