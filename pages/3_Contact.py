@@ -1,6 +1,5 @@
 ﻿import streamlit as st
 import requests
-import json
 
 st.set_page_config(page_title="Contact", page_icon="📞")
 
@@ -15,42 +14,37 @@ We'd love to hear from you!
 **Response Time:** Within 24 hours
 """)
 
-# Contact Form using FormSubmit.co
+# Formspree endpoint - DO NOT CHANGE
+FORMSPREE_ENDPOINT = "https://formspree.io/f/mojbdgaz"
+
 with st.form("contact_form"):
-    name = st.text_input("Your Name")
-    email = st.text_input("Your Email")
+    name = st.text_input("Your Name *", required=True)
+    email = st.text_input("Your Email *", required=True)
     subject = st.selectbox("Subject", ["General Inquiry", "Technical Support", "Feedback", "Other"])
-    message = st.text_area("Message", height=150)
+    message = st.text_area("Message *", height=150, required=True)
     
     submitted = st.form_submit_button("Send Message", use_container_width=True)
     
     if submitted:
-        if not name or not email or not message:
-            st.error("❌ Please fill in all required fields.")
-        else:
-            try:
-                # Send to FormSubmit.co
-                response = requests.post(
-                    "https://formsubmit.co/career.aisupport@gmail.com",
-                    data={
-                        "name": name,
-                        "email": email,
-                        "subject": subject,
-                        "message": message,
-                        "_next": "https://ai-career-assistant-eijldwuwtjy9dmubh3ktqh.streamlit.app",  # Redirect back to app
-                        "_template": "table"
-                    },
-                    headers={"Accept": "application/json"}
-                )
+        try:
+            response = requests.post(
+                FORMSPREE_ENDPOINT,
+                json={
+                    "name": name,
+                    "email": email,
+                    "subject": subject,
+                    "message": message
+                },
+                headers={"Accept": "application/json"}
+            )
+            
+            if response.status_code == 200:
+                st.success("✅ Message sent successfully! We'll get back to you within 24 hours.")
+            else:
+                st.error("❌ Something went wrong. Please try emailing us directly at career.aisupport@gmail.com")
                 
-                if response.status_code == 200:
-                    st.success("✅ Message sent successfully! We'll get back to you within 24 hours.")
-                else:
-                    st.error("❌ Something went wrong. Please try emailing us directly at career.aisupport@gmail.com")
-                    
-            except Exception as e:
-                st.error(f"❌ Error sending message. Please email us directly at career.aisupport@gmail.com")
-                st.write(f"Error details: {e}")
+        except Exception as e:
+            st.error("❌ Error sending message. Please email us directly at career.aisupport@gmail.com")
 
 st.markdown("---")
 st.markdown("""
@@ -58,4 +52,3 @@ st.markdown("""
 
 Join our community of professionals supporting each other through career transitions.
 """)
-
