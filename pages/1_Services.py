@@ -5,7 +5,6 @@ Features: CV Upload, AI Profile Analysis, Job Matching, CV Rewriting, Cover Lett
 """
 import streamlit as st
 import sys
-import os
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -16,7 +15,6 @@ try:
     from modules.jsearch_client import JSearchClient
 except ImportError as e:
     st.error(f"⚠️ Could not import JSearchClient: {e}")
-    st.error("Make sure modules/jsearch_client.py exists and has no syntax errors")
 
 # Page config
 st.set_page_config(
@@ -25,7 +23,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for better UI
+# Custom CSS
 st.markdown("""
 <style>
     .job-card {
@@ -35,13 +33,6 @@ st.markdown("""
         margin: 8px 0;
         background: white;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .match-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: white;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -58,7 +49,7 @@ if "cv_text" not in st.session_state:
 if "saved_jobs" not in st.session_state:
     st.session_state.saved_jobs = []
 
-# Create tabs for different services
+# Create tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📄 CV Upload", 
     "🔍 AI Profile Analysis", 
@@ -157,6 +148,37 @@ with tab3:
     st.header("💼 AI-Powered Job Matching")
     st.markdown("Find jobs that match your skills and experience")
     
+    # Temporary API Test
+    if st.checkbox("🧪 Test JSearch API Connection", value=False):
+        st.write("Testing API connection...")
+        try:
+            test_client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
+            
+            test_results = test_client.search_jobs(
+                query="python developer",
+                location=None,
+                employment_types=None,
+                date_posted="all",
+                num_pages=1
+            )
+            
+            st.write("✅ API Response Status:", test_results.get("status"))
+            st.write("📊 Jobs Found:", len(test_results.get("data", [])))
+            
+            if test_results.get("data"):
+                st.success(f"API is working! Found {len(test_results['data'])} jobs")
+                st.json(test_results["data"][0])
+            else:
+                st.warning("API returned OK but no jobs in data array")
+                st.json(test_results)
+                
+        except Exception as e:
+            st.error(f"❌ API Test Failed: {e}")
+            import traceback
+            st.code(traceback.format_exc())
+    
+    st.divider()
+    
     if "JSEARCH_API_KEY" not in st.secrets:
         st.error("⚠️ JSearch API key not configured. Please add it to Streamlit secrets.")
     else:
@@ -200,17 +222,20 @@ with tab3:
         if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
             with st.spinner("🔎 Searching for the best opportunities..."):
                 try:
-                    # Debug: Show what we're searching for
+                    # Debug info
                     st.info(f"🔍 **Debug** - Query: '{job_query}', Location: '{location}'")
                     
                     client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
                     
+                    # Extract skills from CV
                     user_skills = []
-                    if st.session_state.user_profile.get("analyzed"):
-                        # Extract skills from analysis if available
-                        analysis_text = st.session_state.user_profile.get("analysis", "")
-                        if "Team Leadership" in analysis_text:
-                            user_skills = ["Team Leadership", "Strategic Planning", "Product Management"]
+                    if st.session_state.cv_text:
+                        # Simple skill extraction
+                        skills_keywords = ["Python", "JavaScript", "React", "Node.js", "Docker", 
+                                         "Kubernetes", "AWS", "Git", "Agile", "Team Leadership"]
+                        for skill in skills_keywords:
+                            if skill.lower() in st.session_state.cv_text.lower():
+                                user_skills.append(skill)
                     
                     st.info(f"🔍 **Debug** - User Skills: {user_skills}")
                     
@@ -223,7 +248,7 @@ with tab3:
                         user_skills=user_skills
                     )
                     
-                    # Debug: Show raw response
+                    # Debug info
                     st.write("📊 **API Response Status:**", results.get("status"))
                     st.write("📊 **Number of jobs:**", len(results.get("data", [])))
                     
