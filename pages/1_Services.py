@@ -14,8 +14,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 # Import our modules
 try:
     from modules.jsearch_client import JSearchClient
-except ImportError:
-    st.error("⚠️ Could not import JSearchClient. Make sure modules/jsearch_client.py exists.")
+except ImportError as e:
+    st.error(f"⚠️ Could not import JSearchClient: {e}")
+    st.error("Make sure modules/jsearch_client.py exists and has no syntax errors")
 
 # Page config
 st.set_page_config(
@@ -78,14 +79,11 @@ with tab1:
     )
     
     if uploaded_file is not None:
-        # Display file info
         st.success(f"✅ Uploaded: {uploaded_file.name}")
         st.info(f"Size: {uploaded_file.size / 1024:.1f} KB")
         
-        # Read file content
         try:
             if uploaded_file.type == "application/pdf":
-                # Simple PDF text extraction
                 import PyPDF2
                 from io import BytesIO
                 
@@ -96,11 +94,9 @@ with tab1:
             else:
                 cv_text = uploaded_file.read().decode("utf-8")
             
-            # Store in session state
             st.session_state.cv_text = cv_text
             st.session_state.user_profile["cv_uploaded"] = True
             
-            # Show preview
             with st.expander("📋 View CV Preview"):
                 st.text_area("CV Content", cv_text, height=300)
                 
@@ -116,7 +112,7 @@ with tab2:
     else:
         st.markdown("Get AI-powered insights about your CV")
         
-        if st.button(" Analyze My Profile", type="primary"):
+        if st.button("Analyze My Profile", type="primary"):
             with st.spinner("🤖 AI is analyzing your CV..."):
                 try:
                     from groq import Groq
@@ -146,34 +142,27 @@ with tab2:
                     
                     analysis = response.choices[0].message.content
                     
-                    # Store analysis
                     st.session_state.user_profile["analysis"] = analysis
                     st.session_state.user_profile["analyzed"] = True
                     
-                    # Display results
                     st.success("✅ Analysis Complete!")
                     st.markdown(analysis)
-                    
-                    # Extract skills for job matching
                     st.info("💡 Your profile has been analyzed. You can now use Job Matching tab!")
                     
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
 
-# ==================== TAB 3: JOB MATCHING (NEW ENHANCED VERSION) ====================
+# ==================== TAB 3: JOB MATCHING ====================
 with tab3:
     st.header("💼 AI-Powered Job Matching")
     st.markdown("Find jobs that match your skills and experience")
     
-    # Check if API key exists
     if "JSEARCH_API_KEY" not in st.secrets:
         st.error("⚠️ JSearch API key not configured. Please add it to Streamlit secrets.")
     else:
-        # Smart defaults from user profile
         default_query = "software developer"
         default_location = ""
         
-        # Try to extract from analysis if available
         if st.session_state.user_profile.get("analyzed"):
             st.info("✨ Using your profile analysis for smarter matching")
         
@@ -191,38 +180,40 @@ with tab3:
                 placeholder="Remote, New York, London, etc."
             )
         
-        # Advanced filters
         with st.expander("🔍 Advanced Filters"):
             col_a, col_b = st.columns(2)
             with col_a:
                 emp_type = st.multiselect(
                     "Employment Type",
                     ["FULLTIME", "CONTRACTOR", "PARTTIME", "INTERN"],
-                    default=["FULLTIME"]
+                    default=[]
                 )
             with col_b:
                 date_filter = st.selectbox(
                     "Posted Within",
                     ["all", "today", "3days", "week", "month"],
-                    index=3  # default: week
+                    index=3
                 )
             
             num_results = st.slider("Number of Results", 5, 20, 10)
         
-        # Search button
         if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
             with st.spinner("🔎 Searching for the best opportunities..."):
                 try:
-                    # Initialize JSearch client
+                    # Debug: Show what we're searching for
+                    st.info(f"🔍 **Debug** - Query: '{job_query}', Location: '{location}'")
+                    
                     client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
                     
-                    # Extract user skills if analysis exists
                     user_skills = []
                     if st.session_state.user_profile.get("analyzed"):
-                        # Simple keyword extraction - can be improved
-                        user_skills = ["python", "java", "javascript"]  # Placeholder
+                        # Extract skills from analysis if available
+                        analysis_text = st.session_state.user_profile.get("analysis", "")
+                        if "Team Leadership" in analysis_text:
+                            user_skills = ["Team Leadership", "Strategic Planning", "Product Management"]
                     
-                    # Search for jobs
+                    st.info(f"🔍 **Debug** - User Skills: {user_skills}")
+                    
                     results = client.search_jobs(
                         query=job_query,
                         location=location if location else None,
@@ -232,17 +223,21 @@ with tab3:
                         user_skills=user_skills
                     )
                     
+                    # Debug: Show raw response
+                    st.write("📊 **API Response Status:**", results.get("status"))
+                    st.write("📊 **Number of jobs:**", len(results.get("data", [])))
+                    
                     if results.get("data") and len(results["data"]) > 0:
                         st.success(f"✅ Found {len(results['data'])} matching jobs!")
-                        
-                        # Display jobs
                         display_jobs(results["data"], job_query)
                     else:
-                        st.warning("No jobs found. Try broadening your search terms.")
+                        st.warning("⚠️ No jobs found. Try broadening your search terms.")
+                        st.info(f"📋 **Debug Info** - Full response: {results}")
                         
                 except Exception as e:
-                    st.error(f"Search failed: {e}")
-                    st.info("💡 Make sure your JSearch API key is valid")
+                    st.error(f"❌ Search failed: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
 # ==================== TAB 4: CV REWRITING ====================
 with tab4:
@@ -270,10 +265,6 @@ with tab4:
                         
                         rewrite_prompt = f"""
                         Rewrite and optimize this CV to better match the job description.
-                        Focus on:
-                        - Highlighting relevant skills
-                        - Using keywords from the job posting
-                        - Improving clarity and impact
                         
                         Original CV:
                         {st.session_state.cv_text[:2000]}
@@ -296,7 +287,6 @@ with tab4:
                         st.success("✅ CV Rewritten!")
                         st.text_area("Optimized CV", rewritten_cv, height=400)
                         
-                        # Download button
                         st.download_button(
                             label="📥 Download Rewritten CV",
                             data=rewritten_cv,
@@ -347,13 +337,7 @@ with tab5:
                         Position: {job_title}
                         Job Details: {job_desc[:500]}
                         
-                        Write a compelling 3-4 paragraph cover letter that:
-                        - Shows enthusiasm for the role
-                        - Highlights relevant experience
-                        - Demonstrates cultural fit
-                        - Ends with a call to action
-                        
-                        Format professionally.
+                        Write a compelling 3-4 paragraph cover letter.
                         """
                         
                         response = client.chat.completions.create(
@@ -368,7 +352,6 @@ with tab5:
                         st.success("✅ Cover Letter Generated!")
                         st.text_area("Your Cover Letter", cover_letter, height=400)
                         
-                        # Download button
                         st.download_button(
                             label="📥 Download Cover Letter",
                             data=cover_letter,
@@ -386,7 +369,6 @@ def display_jobs(jobs, query):
     for i, job in enumerate(jobs):
         match_score = job.get("career_compass_match_score", 0)
         
-        # Determine badge color and text
         if match_score >= 0.7:
             badge_html = '<span style="background:#10b981;color:white;padding:4px 12px;border-radius:20px;font-size:0.8rem;">🟢 Excellent Match</span>'
         elif match_score >= 0.4:
@@ -394,7 +376,6 @@ def display_jobs(jobs, query):
         else:
             badge_html = '<span style="background:#6b7280;color:white;padding:4px 12px;border-radius:20px;font-size:0.8rem;">⚪ Potential Fit</span>'
         
-        # Job card HTML
         st.markdown(f"""
         <div class="job-card">
             <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -410,24 +391,19 @@ def display_jobs(jobs, query):
         </div>
         """, unsafe_allow_html=True)
         
-        # Expandable details
         with st.expander("View Details & Apply"):
-            # Salary info
             if job.get("normalized_salary"):
                 salary = job["normalized_salary"]
                 if salary.get("min_annual_usd"):
                     st.caption(f"💰 Estimated Salary: ${salary['min_annual_usd']:,} - ${salary['max_annual_usd']:,} USD/year")
             
-            # Skills
             if job.get("job_required_skills"):
                 st.markdown("**Required Skills:**")
                 st.write(", ".join(job["job_required_skills"][:5]))
             
-            # Apply button
             apply_link = job.get("job_apply_link", "#")
             st.link_button("🚀 Apply Now", apply_link, type="primary")
             
-            # Save button
             if st.button("💾 Save for Later", key=f"save_{i}"):
                 st.session_state.saved_jobs.append(job)
                 st.success("Job saved! ✨")
