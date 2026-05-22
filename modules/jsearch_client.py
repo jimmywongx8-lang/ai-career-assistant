@@ -52,16 +52,16 @@ class JSearchClient:
         # Build query with location if provided
         search_query = f"{query} in {location}" if location else query
         
+        # Simplified parameters to avoid 400 errors
         params = {
             "query": search_query,
-            "num_pages": min(num_pages, 10),  # API max is 10
+            "num_pages": min(num_pages, 10),
             "country": country,
-            "date_posted": date_posted,
-            # Request only fields we actually use to reduce payload
-            "fields": "job_id,employer_name,job_title,job_description,job_apply_link,job_city,job_state,job_country,job_posted_at_timestamp,job_required_skills,job_required_experience,job_benefits,estimated_salaries,job_employment_type"
+            "date_posted": date_posted
         }
         
-        if employment_types:
+        # Only add employment_types if it's not empty
+        if employment_types and len(employment_types) > 0:
             params["employment_types"] = ",".join(employment_types)
         
         try:
@@ -71,6 +71,24 @@ class JSearchClient:
                 params=params,
                 timeout=30
             )
+            
+            # Better error handling
+            if response.status_code == 400:
+                error_detail = response.json() if response.text else "Bad Request"
+                st.error(f"❌ API Error 400: {error_detail}")
+                st.warning("💡 This usually means an invalid parameter. Check your API key and search terms.")
+                return {"data": [], "status": "error", "message": str(error_detail)}
+            
+            elif response.status_code == 401:
+                st.error("❌ API Error 401: Invalid API Key")
+                st.warning("💡 Check your JSEARCH_API_KEY in Streamlit secrets")
+                return {"data": [], "status": "error", "message": "Invalid API key"}
+                
+            elif response.status_code == 429:
+                st.error("❌ API Error 429: Rate Limit Exceeded")
+                st.warning("💡 You've used too many requests. Wait a minute and try again.")
+                return {"data": [], "status": "error", "message": "Rate limit"}
+            
             response.raise_for_status()
             data = response.json()
             
@@ -100,14 +118,6 @@ class JSearchClient:
         except requests.exceptions.Timeout:
             st.error("⏱️ Job search timed out. Please try again.")
             return {"data": [], "status": "error", "message": "timeout"}
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 429:
-                st.warning("⚠️ Rate limit reached. Waiting 10 seconds before retry...")
-                time.sleep(10)
-                return _self.search_jobs(query, location, employment_types, 
-                                       date_posted, num_pages, country, user_skills)
-            st.error(f"⚠️ API error: {e.response.status_code}")
-            return {"data": [], "status": "error", "message": str(e)}
         except Exception as e:
             st.error(f"⚠️ Unexpected error: {str(e)}")
             return {"data": [], "status": "error", "message": str(e)}
