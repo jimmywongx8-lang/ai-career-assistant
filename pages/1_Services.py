@@ -1,4 +1,5 @@
-﻿import streamlit as st
+﻿
+import streamlit as st
 import os
 import sys
 from urllib.parse import quote
@@ -6,7 +7,20 @@ from urllib.parse import quote
 st.set_page_config(page_title="Services", page_icon="📋", layout="wide")
 
 st.title("📋 Services")
-st.markdown("### Upload your CV and start your career transition")
+
+# --- INTRODUCTION ---
+st.markdown("""
+We suggest following these simple steps to get the most from our tools:
+
+1. **Upload your CV** - Start by sharing your resume (PDF or DOCX format)
+2. **Analyze your profile** - Let our AI identify your key skills and experience level
+3. **Find matching jobs** - Discover opportunities that align with your background
+4. **Tailor your application** - Generate a customized CV and cover letter for your chosen role
+
+Feel free to move through these steps at your own pace. Your data remains private and is never stored on our servers.
+""")
+
+st.divider()
 
 # Import modules
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'modules'))
@@ -63,7 +77,7 @@ else:
 st.divider()
 
 # --- Step 3: Jobs ---
-st.header("3️ Find Matching Jobs")
+st.header("3️⃣ Find Matching Jobs")
 st.markdown("> Our **Intelligent Job Matching** scans live opportunities across major job boards, then compares each role against your profile to deliver a curated shortlist with personalized match scores. You'll see exactly why each position fits, where your experience aligns, and any skill gaps—plus direct application links. This targeted approach saves hours of searching while increasing your interview chances.")
 st.divider()
 
@@ -86,7 +100,7 @@ if st.session_state.cv_text:
             st.session_state.selected_job = st.session_state.matches[idx]
             job = st.session_state.selected_job
             
-            st.markdown(f"####  {job['title']}")
+            st.markdown(f"#### 🎯 {job['title']}")
             st.info(f"**{job['company']}** • {job['location']} • Match: {job.get('score')}%")
             
             apply_link = job.get('apply_link', '')
@@ -117,7 +131,7 @@ with c1:
         st.info("Select a job first")
 
 with c2:
-    st.header("5️ Generate Cover Letter")
+    st.header("5️⃣ Generate Cover Letter")
     st.markdown("> Our **Smart Cover Letter Generator** creates personalized, professional letters in seconds by analyzing your CV and the job description. Each letter highlights your most relevant achievements and explains why you're the perfect fit—no more generic templates or hours of writing. Just review, add personal touches if desired, and download ready to submit.")
     st.divider()
     if st.session_state.cv_text and st.session_state.selected_job:
