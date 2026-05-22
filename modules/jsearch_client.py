@@ -1,5 +1,3 @@
-# modules/jsearch_client.py
-"""Enhanced JSearch API client for Career Compass"""
 import requests
 import streamlit as st
 from typing import Optional, List, Dict
@@ -8,8 +6,6 @@ import time
 
 
 class JSearchClient:
-    """JSearch API client"""
-    
     BASE_URL = "https://jsearch.p.rapidapi.com"
     
     def __init__(self, api_key: str):
@@ -30,8 +26,6 @@ class JSearchClient:
                    num_pages: int = 1,
                    country: str = "us",
                    user_skills: Optional[List[str]] = None) -> Dict:
-        """Search jobs with caching and retry logic"""
-        
         if not query or not query.strip():
             st.error("Please enter a job title or search term")
             return {"data": [], "status": "error", "message": "Query is required"}
@@ -132,7 +126,6 @@ class JSearchClient:
     
     def _calculate_match_score(_self, job: Dict, query: str, 
                             user_skills: Optional[List[str]] = None) -> float:
-        """Calculate match score"""
         if not isinstance(job, dict):
             return 0.0
             
@@ -157,7 +150,6 @@ class JSearchClient:
         return min(1.0, round(score, 2))
     
     def _normalize_salary(_self, salary_data: Optional[List[Dict]]) -> Optional[Dict]:
-        """Normalize salary"""
         if not salary_data or not isinstance(salary_data, list):
             return None
         
