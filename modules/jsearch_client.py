@@ -21,7 +21,7 @@ class JSearchClient:
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
     
-    @st.cache_data(ttl=1800, show_spinner="🔍 Fetching smart job matches...")
+    @st.cache_data(ttl=1800, show_spinner="Fetching smart job matches...")
     def search_jobs(_self, 
                    query: str,
                    location: Optional[str] = None,
@@ -32,17 +32,14 @@ class JSearchClient:
                    user_skills: Optional[List[str]] = None) -> Dict:
         """Search jobs with caching and retry logic"""
         
-        # Validate query
         if not query or not query.strip():
             st.error("Please enter a job title or search term")
             return {"data": [], "status": "error", "message": "Query is required"}
         
-        # Build query
         search_query = query.strip()
         if location and location.strip():
             search_query = f"{search_query} in {location.strip()}"
         
-        # Build parameters
         params = {
             "query": search_query,
             "num_pages": min(num_pages, 10),
@@ -53,7 +50,6 @@ class JSearchClient:
         if employment_types and len(employment_types) > 0:
             params["employment_types"] = ",".join(employment_types)
         
-        # Retry logic
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -61,7 +57,7 @@ class JSearchClient:
                     f"{_self.BASE_URL}/search-v2",
                     headers=_self.headers,
                     params=params,
-                    timeout=60  # Increased from 30 to 60 seconds
+                    timeout=60
                 )
                 
                 if response.status_code == 400:
@@ -98,7 +94,6 @@ class JSearchClient:
                     st.info("No jobs found for this search")
                     return {"data": [], "status": data.get("status", "unknown")}
                 
-                # Process jobs
                 processed_jobs = []
                 for job in jobs_list:
                     if not isinstance(job, dict):
@@ -123,11 +118,11 @@ class JSearchClient:
                 
             except requests.exceptions.Timeout:
                 if attempt < max_retries - 1:
-                    st.warning(f"⏱️ Timeout (attempt {attempt + 1}/{max_retries}). Retrying in 5 seconds...")
+                    st.warning(f"Timeout (attempt {attempt + 1}/{max_retries}). Retrying...")
                     time.sleep(5)
                     continue
                 else:
-                    st.error("⏱️ Job search timed out after 3 attempts. Please try again later.")
+                    st.error("Job search timed out after 3 attempts.")
                     return {"data": [], "status": "error", "message": "timeout"}
             except Exception as e:
                 st.error(f"Unexpected error: {str(e)}")
