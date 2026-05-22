@@ -8,7 +8,7 @@ import time
 class JSearchClient:
     BASE_URL = "https://jsearch.p.rapidapi.com"
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key):
         if not api_key:
             raise ValueError("JSearch API key is required")
         self.api_key = api_key
@@ -17,22 +17,17 @@ class JSearchClient:
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
     
-    @st.cache_data(ttl=1800, show_spinner="Fetching smart job matches...")
-    def search_jobs(_self, 
-                   query: str,
-                   location: Optional[str] = None,
-                   employment_types: Optional[List[str]] = None,
-                   date_posted: str = "all",
-                   num_pages: int = 1,
-                   country: str = "us",
-                   user_skills: Optional[List[str]] = None) -> Dict:
+    @st.cache_data(ttl=1800, show_spinner="Fetching job matches...")
+    def search_jobs(_self, query, location=None, employment_types=None, 
+                   date_posted="all", num_pages=1, country="us", user_skills=None):
+        
         if not query or not query.strip():
             st.error("Please enter a job title or search term")
             return {"data": [], "status": "error", "message": "Query is required"}
         
         search_query = query.strip()
         if location and location.strip():
-            search_query = f"{search_query} in {location.strip()}"
+            search_query = search_query + " in " + location.strip()
         
         params = {
             "query": search_query,
@@ -48,19 +43,15 @@ class JSearchClient:
         for attempt in range(max_retries):
             try:
                 response = requests.get(
-                    f"{_self.BASE_URL}/search-v2",
+                    _self.BASE_URL + "/search-v2",
                     headers=_self.headers,
                     params=params,
                     timeout=60
                 )
                 
                 if response.status_code == 400:
-                    try:
-                        error_json = response.json()
-                        error_msg = str(error_json)
-                    except:
-                        error_msg = response.text[:200]
-                    st.error(f"API Error 400: {error_msg}")
+                    error_msg = response.text[:200] if response.text else "Bad Request"
+                    st.error("API Error 400: " + error_msg)
                     return {"data": [], "status": "error", "message": error_msg}
                 
                 elif response.status_code == 401:
@@ -72,15 +63,10 @@ class JSearchClient:
                     return {"data": [], "status": "error", "message": "Rate limit"}
                 
                 response.raise_for_status()
-                
-                try:
-                    data = response.json()
-                except ValueError as e:
-                    st.error(f"Failed to parse API response: {e}")
-                    return {"data": [], "status": "error", "message": "Invalid JSON"}
+                data = response.json()
                 
                 if not isinstance(data, dict):
-                    st.error(f"Unexpected response format: {type(data).__name__}")
+                    st.error("Unexpected response format")
                     return {"data": [], "status": "error", "message": "Invalid format"}
                 
                 jobs_list = data.get("data", [])
@@ -112,20 +98,19 @@ class JSearchClient:
                 
             except requests.exceptions.Timeout:
                 if attempt < max_retries - 1:
-                    st.warning(f"Timeout (attempt {attempt + 1}/{max_retries}). Retrying...")
+                    st.warning("Timeout. Retrying...")
                     time.sleep(5)
                     continue
                 else:
                     st.error("Job search timed out after 3 attempts.")
                     return {"data": [], "status": "error", "message": "timeout"}
             except Exception as e:
-                st.error(f"Unexpected error: {str(e)}")
+                st.error("Unexpected error: " + str(e))
                 return {"data": [], "status": "error", "message": str(e)}
         
         return {"data": [], "status": "error", "message": "Max retries exceeded"}
     
-    def _calculate_match_score(_self, job: Dict, query: str, 
-                            user_skills: Optional[List[str]] = None) -> float:
+    def _calculate_match_score(_self, job, query, user_skills=None):
         if not isinstance(job, dict):
             return 0.0
             
@@ -134,7 +119,7 @@ class JSearchClient:
             return 0.0
         
         score = 0.0
-        job_text = f"{job.get('job_title', '')} {job_description}".lower()
+        job_text = (job.get("job_title", "") + " " + job_description).lower()
         
         query_terms = [t.strip().lower() for t in query.split() if len(t) > 3]
         if query_terms:
@@ -149,7 +134,7 @@ class JSearchClient:
         
         return min(1.0, round(score, 2))
     
-    def _normalize_salary(_self, salary_data: Optional[List[Dict]]) -> Optional[Dict]:
+    def _normalize_salary(_self, salary_data):
         if not salary_data or not isinstance(salary_data, list):
             return None
         
@@ -164,18 +149,18 @@ class JSearchClient:
             period = salary.get("period", "YEAR").upper()
             
             if period == "HOUR":
-                min_sal *= 2080
-                max_sal *= 2080
+                min_sal = min_sal * 2080
+                max_sal = max_sal * 2080
             elif period == "MONTH":
-                min_sal *= 12
-                max_sal *= 12
+                min_sal = min_sal * 12
+                max_sal = max_sal * 12
             
             if currency != "USD":
                 return {
                     "min_annual_usd": None,
                     "max_annual_usd": None,
                     "original": salary,
-                    "note": f"Currency: {currency}"
+                    "note": "Currency: " + currency
                 }
             
             return {
