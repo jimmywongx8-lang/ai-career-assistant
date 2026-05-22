@@ -6,7 +6,7 @@ Features: caching, error handling, match scoring, and career-focused filtering
 import requests
 import streamlit as st
 import time
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
@@ -60,12 +60,16 @@ class JSearchClient:
                 timeout=30
             )
             
-            # Better error handling
+            # Handle different status codes
             if response.status_code == 400:
-                error_detail = response.json() if response.text else "Bad Request"
-                st.error(f"❌ API Error 400: {error_detail}")
-                st.warning("💡 This usually means an invalid parameter. Check your API key and search terms.")
-                return {"data": [], "status": "error", "message": str(error_detail)}
+                try:
+                    error_json = response.json()
+                    error_msg = str(error_json) if error_json else "Bad Request"
+                except:
+                    error_msg = response.text[:200] if response.text else "Bad Request"
+                st.error(f"❌ API Error 400: {error_msg}")
+                st.warning("💡 Check your API key and search parameters")
+                return {"data": [], "status": "error", "message": error_msg}
             
             elif response.status_code == 401:
                 st.error("❌ API Error 401: Invalid API Key")
@@ -77,65 +81,85 @@ class JSearchClient:
                 st.warning("💡 You've used too many requests. Wait a minute and try again.")
                 return {"data": [], "status": "error", "message": "Rate limit"}
             
+            # Raise for other HTTP errors
             response.raise_for_status()
             
-            # Parse JSON response
+            # Parse JSON response safely
             try:
                 data = response.json()
             except ValueError as e:
-                st.error(f"❌ Failed to parse API response: {e}")
-                st.error(f"Response text: {response.text[:200]}")
+                st.error(f"❌ Failed to parse API response as JSON")
+                st.error(f"Response: {response.text[:300]}")
                 return {"data": [], "status": "error", "message": "Invalid JSON response"}
             
-            # Ensure data is a dictionary
+            # Validate response structure
             if not isinstance(data, dict):
-                st.error(f"❌ Unexpected API response format: {type(data)}")
-                st.error(f"Response: {str(data)[:200]}")
+                st.error(f"❌ API returned unexpected format: {type(data).__name__}")
+                st.error(f"Response: {str(data)[:300]}")
                 return {"data": [], "status": "error", "message": "Invalid response format"}
             
-            # Enhance results with Career Compass matching
-            if data.get("status") == "OK" and data.get("data"):
-                for job in data["data"]:
-                    # Add match score based on user profile/skills
-                    job["career_compass_match_score"] = _self._calculate_match_score(
-                        job, query, user_skills
-                    )
-                    # Add fetch timestamp for freshness indicators
-                    job["fetched_at"] = datetime.now().isoformat()
-                    # Normalize salary data for consistent display
-                    job["normalized_salary"] = _self._normalize_salary(
-                        job.get("estimated_salaries")
-                    )
-                
-                # Sort by match score descending (best fits first)
-                data["data"] = sorted(
-                    data["data"], 
-                    key=lambda x: x.get("career_compass_match_score", 0), 
-                    reverse=True
-                )
+            # Check for successful status
+            if data.get("status") != "OK":
+                st.warning(f"⚠️ API returned status: {data.get('status', 'unknown')}")
+                if data.get("message"):
+                    st.error(f"Message: {data.get('message')}")
             
+            # Process jobs if available
+            jobs_list = data.get("data", [])
+            if not jobs_list:
+                st.info("ℹ️ No jobs found for this search")
+                return {"data": [], "status": data.get("status", "unknown")}
+            
+            # Enhance results with Career Compass matching
+            processed_jobs = []
+            for job in jobs_list:
+                if not isinstance(job, dict):
+                    continue  # Skip invalid entries
+                
+                # Add match score based on user profile/skills
+                job["career_compass_match_score"] = _self._calculate_match_score(
+                    job, query, user_skills
+                )
+                # Add fetch timestamp
+                job["fetched_at"] = datetime.now().isoformat()
+                # Normalize salary
+                job["normalized_salary"] = _self._normalize_salary(
+                    job.get("estimated_salaries")
+                )
+                processed_jobs.append(job)
+            
+            # Sort by match score
+            processed_jobs.sort(
+                key=lambda x: x.get("career_compass_match_score", 0), 
+                reverse=True
+            )
+            
+            data["data"] = processed_jobs
             return data
             
         except requests.exceptions.Timeout:
             st.error("⏱️ Job search timed out. Please try again.")
             return {"data": [], "status": "error", "message": "timeout"}
         except Exception as e:
-            st.error(f"⚠️ Unexpected error: {str(e)}")
-            return {"data": [], "status": "error", "message": str(e)}
+            error_msg = str(e)
+            st.error(f"⚠️ Unexpected error: {error_msg}")
+            st.info("💡 Try refreshing the page or check your API key")
+            return {"data": [], "status": "error", "message": error_msg}
     
     def _calculate_match_score(_self, job: Dict, query: str, 
                             user_skills: Optional[List[str]] = None) -> float:
         """
-        Calculate relevance score (0.0 to 1.0) based on:
-        - Keyword overlap with query
-        - Skills alignment with user's CV
-        - Experience level match
+        Calculate relevance score (0.0 to 1.0) based on job match
         """
-        if not job.get("job_description"):
+        if not isinstance(job, dict):
+            return 0.0
+            
+        job_description = job.get("job_description", "")
+        if not job_description:
             return 0.0
         
         score = 0.0
-        job_text = f"{job.get('job_title', '')} {job.get('job_description', '')}".lower()
+        job_text = f"{job.get('job_title', '')} {job_description}".lower()
         
         # 1. Query keyword matching (40% weight)
         query_terms = [t.strip().lower() for t in query.split() if len(t) > 3]
@@ -143,7 +167,7 @@ class JSearchClient:
             matches = sum(1 for term in query_terms if term in job_text)
             score += 0.4 * (matches / len(query_terms))
         
-        # 2. Skills alignment (50% weight) - most important!
+        # 2. Skills alignment (50% weight)
         if user_skills and job.get("job_required_skills"):
             job_skills = [s.lower() for s in job["job_required_skills"]]
             skill_matches = sum(1 for skill in user_skills 
@@ -165,7 +189,10 @@ class JSearchClient:
             return None
         
         try:
-            salary = salary_data[0]  # Take first estimate
+            salary = salary_data[0]
+            if not isinstance(salary, dict):
+                return None
+                
             min_sal = salary.get("min", 0)
             max_sal = salary.get("max", 0)
             currency = salary.get("currency", "USD")
@@ -173,16 +200,15 @@ class JSearchClient:
             
             # Convert to annual if needed
             if period == "HOUR":
-                min_sal *= 2080  # 40 hrs * 52 weeks
+                min_sal *= 2080
                 max_sal *= 2080
             elif period == "MONTH":
                 min_sal *= 12
                 max_sal *= 12
             
-            # Simple USD conversion note (real app would use FX API)
             if currency != "USD":
                 return {
-                    "min_annual_usd": None,  # Would need conversion logic
+                    "min_annual_usd": None,
                     "max_annual_usd": None,
                     "original": salary,
                     "note": f"Currency: {currency}"
@@ -194,11 +220,11 @@ class JSearchClient:
                 "currency": "USD",
                 "period": "YEAR"
             }
-        except (IndexError, TypeError, KeyError):
+        except (IndexError, TypeError, KeyError, AttributeError):
             return None
     
     def get_job_details(_self, job_id: str) -> Optional[Dict]:
-        """Fetch detailed info for a specific job (optional enhancement)"""
+        """Fetch detailed info for a specific job"""
         try:
             response = requests.get(
                 f"{_self.BASE_URL}/job-details",
