@@ -14,9 +14,6 @@ class JSearchClient:
     def search_jobs(self, query, location=None, employment_types=None, 
                    date_posted="all", num_pages=1, user_skills=None):
         
-        # Show API attempt in UI
-        st.info(f"🔄 Attempting real API call for: {query}")
-        
         try:
             search_query = query.strip()
             if location:
@@ -25,7 +22,7 @@ class JSearchClient:
             params = {
                 "query": search_query,
                 "page": 1,
-                "num_pages": str(num_pages)  # Ensure string
+                "num_pages": str(num_pages)
             }
             
             if date_posted != "all":
@@ -34,9 +31,6 @@ class JSearchClient:
             if employment_types:
                 params["employment_types"] = ",".join(employment_types)
 
-            st.write(f"**Request URL:** {self.BASE_URL}/search-v2")
-            st.write(f"**Params:** {params}")
-
             response = requests.get(
                 f"{self.BASE_URL}/search-v2",
                 headers=self.headers,
@@ -44,49 +38,63 @@ class JSearchClient:
                 timeout=15
             )
             
-            st.write(f"**HTTP Status:** {response.status_code}")
-            
             if response.status_code == 200:
                 data = response.json()
-                st.write(f"**API Status:** {data.get('status')}")
-                st.write(f"**Jobs Found:** {len(data.get('data', []))}")
                 
-                if data.get("status") == "OK" and data.get("data"):
+                if data.get("status") == "OK" and "data" in data:
+                    jobs_list = data["data"]
                     processed_jobs = []
-                    for job in data["data"]:
-                        processed_jobs.append(self._clean_job(job, user_skills))
                     
-                    st.success(f"✅ Real API Success: {len(processed_jobs)} jobs")
-                    return {"data": processed_jobs, "status": "OK"}
-                else:
-                    st.warning(f"⚠️ API returned no data: {data.get('message')}")
-            elif response.status_code == 401:
-                st.error("❌ 401 Unauthorized - Invalid API Key")
-            elif response.status_code == 429:
-                st.error("❌ 429 Rate Limit Exceeded")
-            else:
-                st.error(f"❌ HTTP {response.status_code}: {response.text[:200]}")
+                    for job in jobs_list:
+                        try:
+                            cleaned = self._clean_job(job, user_skills)
+                            processed_jobs.append(cleaned)
+                        except Exception as job_error:
+                            print(f"Skipping job: {job_error}")
+                            continue
+                    
+                    if processed_jobs:
+                        return {"data": processed_jobs, "status": "OK"}
+            
+            # If we get here, API failed or returned no jobs
+            print(f"API returned status: {data.get('status') if 'data' in locals() else 'N/A'}")
                     
         except Exception as e:
-            st.error(f"❌ Exception: {e}")
+            print(f"API Exception: {e}")
             
-        # Fallback
-        st.warning("🔄 Using mock data fallback")
+        # Fallback to mock data
+        print("Using mock data fallback")
         mock_jobs = self._get_mock_jobs(user_skills)
         return {"data": mock_jobs, "status": "OK"}
 
     def _clean_job(self, job, user_skills):
+        """Safely extract job fields with defaults"""
+        
+        # Extract basic info with safe defaults
         title = job.get("job_title", "Unknown Role")
         employer = job.get("employer_name", "Company")
+        
+        # Handle location - API might have job_city/job_state or job_location
         city = job.get("job_city", "")
         state = job.get("job_state", "")
+        if not city and not state:
+            # Try alternative field
+            location_str = job.get("job_location", "")
+            if location_str:
+                parts = location_str.split(", ")
+                if len(parts) >= 2:
+                    city = parts[-2] if len(parts) > 2 else parts[0]
+                    state = parts[-1] if len(parts) > 1 else ""
+        
         desc = job.get("job_description", "")
         apply_link = job.get("job_apply_link") or "#"
         skills = job.get("job_required_skills") or []
         
+        # Handle salary - different structure in real API
         salary_data = job.get("estimated_salaries") or []
         normalized_salary = None
-        if salary_data:
+        
+        if salary_data and len(salary_data) > 0:
             try:
                 first_salary = salary_data[0]
                 normalized_salary = {
@@ -94,9 +102,10 @@ class JSearchClient:
                     "max_annual_usd": first_salary.get("max"),
                     "currency": first_salary.get("currency", "USD")
                 }
-            except Exception:
+            except (IndexError, AttributeError):
                 pass
         
+        # Calculate match score
         match_score = self._calculate_match_score(title, desc, skills, user_skills)
         
         return {
@@ -116,15 +125,15 @@ class JSearchClient:
             return 0.5
             
         score = 0.0
-        combined_text = (title + " " + desc).lower()
-        job_skills_lower = [s.lower() for s in job_skills]
-        user_skills_lower = [s.lower() for s in user_skills]
+        combined_text = (str(title) + " " + str(desc)).lower()
+        job_skills_lower = [str(s).lower() for s in (job_skills or [])]
+        user_skills_lower = [str(s).lower() for s in user_skills]
         
         if job_skills_lower:
             matches = sum(1 for s in user_skills_lower if s in job_skills_lower)
             score += 0.6 * (matches / len(user_skills_lower))
             
-        keywords = [s.lower() for s in user_skills if len(s) > 3]
+        keywords = [s for s in user_skills_lower if len(s) > 3]
         if keywords:
             text_matches = sum(1 for k in keywords if k in combined_text)
             score += 0.4 * (text_matches / len(keywords))
