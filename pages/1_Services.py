@@ -55,7 +55,7 @@ with st.sidebar:
     else:
         st.success(f"✅ {len(st.session_state.saved_jobs)} job(s) saved")
         for i, job in enumerate(st.session_state.saved_jobs):
-            job_title = job.get('job_title', 'Job')[:30]
+            job_title = str(job.get('job_title', 'Job'))[:30]
             with st.expander(f"💾 {job_title}..."):
                 st.write(f"🏢 {job.get('employer_name', 'Unknown')}")
                 if st.button("🗑️ Remove", key=f"remove_job_{i}_{hash(str(job))}"):
@@ -167,15 +167,16 @@ with tab3:
                 if not isinstance(job, dict):
                     continue
                 
-                job_title = job.get("job_title", "Unknown Position")
-                employer = job.get("employer_name", "Unknown Company")
-                city = job.get("job_city", "")
-                state = job.get("job_state", "")
-                description = job.get("job_description", "No description available")
-                skills = job.get("job_required_skills", [])
-                salary = job.get("normalized_salary", {})
-                apply_link = job.get("job_apply_link", "#")
-                match_score = job.get("career_compass_match_score", 0)
+                # Safe extraction with defaults
+                job_title = str(job.get("job_title") or "Unknown Position")
+                employer = str(job.get("employer_name") or "Unknown Company")
+                city = str(job.get("job_city") or "")
+                state = str(job.get("job_state") or "")
+                description = str(job.get("job_description") or "No description available")
+                skills = job.get("job_required_skills") or []
+                salary = job.get("normalized_salary") or {}
+                apply_link = job.get("job_apply_link") or "#"
+                match_score = float(job.get("career_compass_match_score") or 0)
                 
                 if match_score >= 0.7:
                     badge_class, badge_text = "excellent", "🟢 Excellent Match"
@@ -185,7 +186,7 @@ with tab3:
                     badge_class, badge_text = "potential", "⚪ Potential Fit"
                 
                 is_saved = any(
-                    s.get("job_title") == job_title and s.get("employer_name") == employer
+                    str(s.get("job_title")) == job_title and str(s.get("employer_name")) == employer
                     for s in st.session_state.saved_jobs
                 )
                 
@@ -214,27 +215,31 @@ with tab3:
                         if is_saved:
                             st.session_state.saved_jobs = [
                                 j for j in st.session_state.saved_jobs 
-                                if not (j.get("job_title") == job_title and j.get("employer_name") == employer)
+                                if not (str(j.get("job_title")) == job_title and str(j.get("employer_name")) == employer)
                             ]
                         else:
                             st.session_state.saved_jobs.append(job)
                         st.rerun()
                 
+                # Job Details - ONLY show if we have valid data
                 with st.expander("📋 View Details"):
                     c1, c2 = st.columns(2)
                     with c1:
                         st.markdown("**📝 Description**")
-                        st.write(description[:500] + "..." if len(description) > 500 else description)
+                        desc_text = description[:500] + "..." if len(str(description)) > 500 else description
+                        st.write(desc_text)
                     
                     with c2:
-                        if skills:
+                        if skills and len(skills) > 0:
                             st.markdown("**💡 Skills**")
-                            skills_html = "".join([f'<span class="skill-tag">{s}</span>' for s in skills[:6]])
+                            skills_html = "".join([f'<span class="skill-tag">{str(s)}</span>' for s in skills[:6]])
                             st.markdown(skills_html, unsafe_allow_html=True)
                         
                         if salary and salary.get("min_annual_usd"):
                             st.markdown("**💰 Salary**")
-                            st.info(f"${salary['min_annual_usd']:,} - ${salary['max_annual_usd']:,}")
+                            min_sal = salary.get("min_annual_usd", 0)
+                            max_sal = salary.get("max_annual_usd", 0)
+                            st.info(f"${min_sal:,} - ${max_sal:,}")
                     
                     if apply_link and apply_link != "#":
                         st.markdown(f"""
