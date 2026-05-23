@@ -99,7 +99,7 @@ with st.sidebar:
 # ALL 5 TABS
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼 Jobs", "✍️ CV Rewrite", "📧 Cover Letter"])
 
-# TAB 1: CV UPLOAD
+# TAB 1: CV UPLOAD (FIXED FOR PDF)
 with tab1:
     st.header("Upload Your CV")
     st.markdown("Upload your CV to get started with AI-powered career tools")
@@ -107,15 +107,35 @@ with tab1:
     uploaded = st.file_uploader("Choose a file", type=["txt", "pdf"], key="cv_uploader_main")
     if uploaded:
         try:
-            if uploaded.type == "text/plain":
+            # Handle PDF files
+            if uploaded.type == "application/pdf":
+                import PyPDF2
+                from io import BytesIO
+                
+                # Read PDF content
+                pdf_file = BytesIO(uploaded.read())
+                reader = PyPDF2.PdfReader(pdf_file)
+                text_content = ""
+                
+                for page in reader.pages:
+                    text_content += page.extract_text() + "\n"
+                
+                st.session_state.cv_text = text_content
+                st.success(f"✅ PDF Uploaded and Parsed ({len(uploaded.getvalue()) / 1024:.1f} KB)")
+                
+                with st.expander("📋 Preview Parsed Text"):
+                    st.text_area("CV Content", text_content[:1000] + "...", height=200)
+            
+            # Handle Text files
+            elif uploaded.type == "text/plain":
                 st.session_state.cv_text = uploaded.read().decode("utf-8")
-                st.success("✅ CV Uploaded!")
+                st.success("✅ Text File Uploaded!")
                 with st.expander("📋 Preview"):
-                    st.text_area("CV Content", st.session_state.cv_text, height=200)
+                    st.text_area("CV Content", st.session_state.cv_text[:1000] + "...", height=200)
             else:
-                st.warning("Please upload a .txt file for this demo.")
+                st.warning("Unsupported file type. Please use .txt or .pdf")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error reading file: {e}")
 
 # TAB 2: ANALYSIS
 with tab2:
