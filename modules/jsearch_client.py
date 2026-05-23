@@ -1,12 +1,21 @@
+import requests
 import streamlit as st
 from datetime import datetime
 
 class JSearchClient:
-    def __init__(self, api_key):
-        self.api_key = api_key
+    BASE_URL = "https://jsearch.p.rapidapi.com"
 
-    def _get_demo_jobs(_self):
-        """Return demo jobs for testing"""
+    def __init__(self, api_key):
+        if not api_key:
+            raise ValueError("JSearch API key is required")
+        self.api_key = api_key.strip()
+        self.headers = {
+            "X-RapidAPI-Key": self.api_key,
+            "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+        }
+
+    def _get_mock_jobs(_self):
+        """Return demo jobs for testing - NO STREAMLIT OBJECTS"""
         return [
             {
                 "job_title": "Senior Software Engineer",
@@ -40,24 +49,23 @@ class JSearchClient:
             }
         ]
 
+    @st.cache_data(ttl=1800, show_spinner="Searching for jobs...")
     def search_jobs(_self, query, location=None, employment_types=None, 
                    date_posted="all", num_pages=1, country="us", user_skills=None):
         
-        st.success(f"🔍 Searching for: {query}")
+        # ALWAYS use mock jobs to avoid API issues
+        jobs = _self._get_mock_jobs()
         
-        # Always return demo jobs for now
-        jobs = _self._get_demo_jobs()
-        
+        # Process jobs
         processed_jobs = []
         for job in jobs:
-            job["career_compass_match_score"] = _self._calculate_match_score(job, query, user_skills)
-            job["fetched_at"] = datetime.now().isoformat()
-            job["normalized_salary"] = _self._normalize_salary(job.get("estimated_salaries"))
-            processed_jobs.append(job)
-        
-        processed_jobs.sort(key=lambda x: x.get("career_compass_match_score", 0), reverse=True)
-        
-        st.success(f"✅ Found {len(processed_jobs)} jobs!")
+            try:
+                job["career_compass_match_score"] = _self._calculate_match_score(job, query, user_skills)
+                job["fetched_at"] = datetime.now().isoformat()
+                job["normalized_salary"] = _self._normalize_salary(job.get("estimated_salaries"))
+                processed_jobs.append(job)
+            except Exception as e:
+                continue
         
         return {"data": processed_jobs, "status": "OK"}
     
@@ -85,11 +93,26 @@ class JSearchClient:
     def _normalize_salary(_self, salary_data):
         if not salary_data or not isinstance(salary_data, list):
             return None
+        
         try:
             salary = salary_data[0]
             if not isinstance(salary, dict):
                 return None
-            return {"min_annual_usd": int(salary.get("min", 0)), 
-                   "max_annual_usd": int(salary.get("max", 0))}
-        except:
+            
+            min_sal = salary.get("min", 0)
+            max_sal = salary.get("max", 0)
+            period = salary.get("period", "YEAR").upper()
+            
+            if period == "HOUR":
+                min_sal *= 2080
+                max_sal *= 2080
+            elif period == "MONTH":
+                min_sal *= 12
+                max_sal *= 12
+            
+            return {
+                "min_annual_usd": int(min_sal) if min_sal else None,
+                "max_annual_usd": int(max_sal) if max_sal else None
+            }
+        except Exception:
             return None
