@@ -1,5 +1,5 @@
 import requests
-import streamlit as st
+import json
 
 class JSearchClient:
     BASE_URL = "https://jsearch.p.rapidapi.com"
@@ -42,87 +42,64 @@ class JSearchClient:
                 data = response.json()
                 
                 if data.get("status") == "OK":
-                    # Handle both API response structures
                     jobs_list = []
                     
-                    # New API structure: data["data"]["jobs"]
                     if "data" in data and isinstance(data["data"], dict) and "jobs" in data["data"]:
                         jobs_list = data["data"]["jobs"]
-                        print(f"✅ Using new API structure: {len(jobs_list)} jobs")
-                    
-                    # Old API structure: data["data"] (list)
                     elif "data" in data and isinstance(data["data"], list):
                         jobs_list = data["data"]
-                        print(f"✅ Using old API structure: {len(jobs_list)} jobs")
                     
-                    # Process jobs
                     if jobs_list:
                         processed_jobs = []
                         for job in jobs_list:
                             try:
                                 cleaned = self._clean_job(job, user_skills)
                                 processed_jobs.append(cleaned)
-                            except Exception as job_error:
-                                print(f"⚠️ Skipping job: {job_error}")
+                            except Exception:
                                 continue
                         
                         if processed_jobs:
                             return {"data": processed_jobs, "status": "OK"}
-            
-            print(f"⚠️ API returned: {data.get('status', 'unknown')}")
                     
         except Exception as e:
-            print(f"❌ API Exception: {e}")
+            print(f"API Error: {e}")
             
-        # Fallback to mock data
-        print("🔄 Using mock data fallback")
-        mock_jobs = self._get_mock_jobs(user_skills)
-        return {"data": mock_jobs, "status": "OK"}
+        # Fallback
+        return {"data": self._get_mock_jobs(user_skills), "status": "OK"}
 
     def _clean_job(self, job, user_skills):
-        """Safely extract job fields from API response"""
+        """Extract ONLY plain Python types - NO Streamlit objects"""
         
-        # Extract basic info
-        title = job.get("job_title", "Unknown Role")
-        employer = job.get("employer_name", "Company")
+        title = str(job.get("job_title", "Unknown Role"))
+        employer = str(job.get("employer_name", "Company"))
+        city = str(job.get("job_city", ""))
+        state = str(job.get("job_state", ""))
+        desc = str(job.get("job_description", ""))
+        apply_link = str(job.get("job_apply_link") or "#")
         
-        # Handle location
-        city = job.get("job_city", "")
-        state = job.get("job_state", "")
+        # Skills - ensure list of strings
+        raw_skills = job.get("job_required_skills")
+        skills = []
+        if raw_skills and isinstance(raw_skills, list):
+            for s in raw_skills:
+                if s is not None:
+                    skills.append(str(s))
         
-        # Try job_location if city/state not available
-        if not city and not state:
-            location_str = job.get("job_location", "")
-            if location_str and "," in location_str:
-                parts = location_str.split(",")
-                city = parts[0].strip()
-                if len(parts) > 1:
-                    state = parts[1].strip()
-            elif location_str:
-                city = location_str
-        
-        desc = job.get("job_description", "")
-        apply_link = job.get("job_apply_link") or "#"
-        skills = job.get("job_required_skills") or []
-        
-        # Handle salary
+        # Salary - ensure plain dict
         salary_data = job.get("estimated_salaries") or []
-        normalized_salary = None
+        normalized_salary = {}
+        if salary_data and len(salary_data) > 0 and isinstance(salary_data[0], dict):
+            first_salary = salary_data[0]
+            normalized_salary = {
+                "min_annual_usd": int(first_salary.get("min", 0) or 0),
+                "max_annual_usd": int(first_salary.get("max", 0) or 0),
+                "currency": str(first_salary.get("currency", "USD"))
+            }
         
-        if salary_data and len(salary_data) > 0:
-            try:
-                first_salary = salary_data[0]
-                normalized_salary = {
-                    "min_annual_usd": first_salary.get("min"),
-                    "max_annual_usd": first_salary.get("max"),
-                    "currency": first_salary.get("currency", "USD")
-                }
-            except (IndexError, AttributeError):
-                pass
-        
-        # Calculate match score
+        # Match score - ensure float
         match_score = self._calculate_match_score(title, desc, skills, user_skills)
         
+        # Return ONLY plain types
         return {
             "job_title": title,
             "employer_name": employer,
@@ -132,7 +109,7 @@ class JSearchClient:
             "job_required_skills": skills,
             "job_apply_link": apply_link,
             "normalized_salary": normalized_salary,
-            "career_compass_match_score": match_score
+            "career_compass_match_score": float(match_score)
         }
 
     def _calculate_match_score(self, title, desc, job_skills, user_skills):
@@ -158,33 +135,23 @@ class JSearchClient:
     def _get_mock_jobs(self, user_skills):
         return [
             {
-                "job_title": "Senior Software Engineer",
-                "employer_name": "Tech Corp",
-                "job_city": "San Francisco",
-                "job_state": "CA",
-                "job_description": "Looking for Python, JavaScript, React, Docker, Kubernetes, AWS experts.",
-                "job_required_skills": ["Python", "JavaScript", "React", "Docker", "Kubernetes", "AWS"],
-                "job_apply_link": "https://example.com/job1",
-                "estimated_salaries": [{"min": 140000, "max": 180000, "currency": "USD", "period": "YEAR"}]
-            },
-            {
-                "job_title": "Lead Developer",
-                "employer_name": "StartupXYZ",
+                "job_title": "Strategy Consultant",
+                "employer_name": "McKinsey & Company",
                 "job_city": "New York",
                 "job_state": "NY",
-                "job_description": "Lead developer needed. Python, Node.js, React, Git, Agile required.",
-                "job_required_skills": ["Python", "Node.js", "React", "Git", "Agile"],
-                "job_apply_link": "https://example.com/job2",
-                "estimated_salaries": [{"min": 150000, "max": 190000, "currency": "USD", "period": "YEAR"}]
+                "job_description": "Seeking strategy consultant with strong analytical and management skills.",
+                "job_required_skills": ["Strategy", "Analysis", "Management", "Consulting"],
+                "job_apply_link": "https://example.com/job1",
+                "estimated_salaries": [{"min": 120000, "max": 160000, "currency": "USD", "period": "YEAR"}]
             },
             {
-                "job_title": "Cloud Architect",
-                "employer_name": "Enterprise Inc",
+                "job_title": "Business Analyst",
+                "employer_name": "Deloitte",
                 "job_city": "Remote",
                 "job_state": "Remote",
-                "job_description": "Cloud architect position. AWS, Docker, Kubernetes, Jenkins, Python.",
-                "job_required_skills": ["AWS", "Docker", "Kubernetes", "Jenkins", "Python"],
-                "job_apply_link": "https://example.com/job3",
-                "estimated_salaries": [{"min": 160000, "max": 200000, "currency": "USD", "period": "YEAR"}]
+                "job_description": "Business analyst role focusing on financial analysis and strategic planning.",
+                "job_required_skills": ["Analysis", "Finance", "Excel", "Strategy"],
+                "job_apply_link": "https://example.com/job2",
+                "estimated_salaries": [{"min": 90000, "max": 130000, "currency": "USD", "period": "YEAR"}]
             }
         ]
