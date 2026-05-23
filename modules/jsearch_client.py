@@ -20,15 +20,12 @@ class JSearchClient:
                    date_posted="all", num_pages=1, country="us", user_skills=None):
         
         if not query:
-            st.error("Please enter a job title or search term")
-            return {"data": [], "status": "error", "message": "No query provided"}
+            return {"data": [], "status": "error", "message": "Query is required"}
         
-        # Build search query
         search_query = query.strip()
         if location and location.strip():
-            search_query = query.strip() + " in " + location.strip()
+            search_query = search_query + " in " + location.strip()
         
-        # Build parameters
         params = {
             "query": search_query,
             "num_pages": min(num_pages, 10),
@@ -40,7 +37,7 @@ class JSearchClient:
             params["employment_types"] = ",".join(employment_types)
         
         try:
-            st.info(f"📡 Calling JSearch API with query: {search_query}")
+            # st.info(f"📡 Calling JSearch API...") # Optional: comment out to reduce noise
             
             response = requests.get(
                 _self.BASE_URL + "/search-v2",
@@ -49,89 +46,70 @@ class JSearchClient:
                 timeout=60
             )
             
-            st.info(f"📡 API Response Status Code: {response.status_code}")
-            
-            # Handle different status codes
-            if response.status_code == 400:
-                error_msg = response.text[:500] if response.text else "Bad Request"
-                st.error(f"❌ API Error 400: {error_msg}")
-                return {"data": [], "status": "error", "message": error_msg}
-            elif response.status_code == 401:
-                st.error("❌ API Error 401: Invalid API Key")
-                return {"data": [], "status": "error", "message": "Invalid API key"}
-            elif response.status_code == 429:
-                st.error("❌ API Error 429: Rate Limit Exceeded")
-                return {"data": [], "status": "error", "message": "Rate limit"}
-            elif response.status_code != 200:
-                st.error(f"❌ API Error {response.status_code}: {response.text[:500]}")
+            if response.status_code != 200:
+                error_text = response.text[:300]
+                st.error(f"❌ API HTTP Error {response.status_code}: {error_text}")
                 return {"data": [], "status": "error", "message": f"HTTP {response.status_code}"}
             
-            # Parse JSON response
             try:
                 data = response.json()
             except Exception as e:
-                st.error(f"❌ Failed to parse API response as JSON: {e}")
-                st.error(f"Response text: {response.text[:500]}")
-                return {"data": [], "status": "error", "message": "Invalid JSON response"}
+                st.error(f"❌ Failed to parse JSON: {e}")
+                return {"data": [], "status": "error", "message": "Invalid JSON"}
             
-            # Check if data is a dict
-            if not isinstance(data, dict):
-                st.error(f"❌ Unexpected response format: {type(data)}")
-                return {"data": [], "status": "error", "message": "Invalid response format"}
+            # --- DEBUGGING LOGIC START ---
+            # Check if 'data' field exists and is a list
+            raw_data = data.get("data")
             
-            jobs_list = data.get("data", [])
+            if raw_data is None:
+                st.error("❌ API response missing 'data' field.")
+                st.write("Full Response:", data)
+                return {"data": [], "status": "error", "message": "Missing data field"}
+            
+            if not isinstance(raw_data, list):
+                # This is the likely issue: API returning a string error in the data field
+                st.error(f"❌ API 'data' field is not a list! It is a {type(raw_data).__name__}.")
+                st.warning(f"Content: {str(raw_data)[:300]}")
+                st.info("💡 This usually means your API Key is invalid, expired, or you hit a rate limit.")
+                return {"data": [], "status": "error", "message": "Invalid data format from API"}
+            # --- DEBUGGING LOGIC END ---
+            
+            jobs_list = raw_data
             
             if not jobs_list:
-                st.warning("ℹ️ API returned successfully but no jobs found")
                 return {"data": [], "status": "ok", "message": "No jobs found"}
             
-            # Process jobs safely
             processed_jobs = []
             for i, job in enumerate(jobs_list):
-                # Ensure job is a dict before trying to modify it
                 if not isinstance(job, dict):
-                    st.warning(f"⚠️ Job {i} is not a dictionary, skipping")
+                    st.warning(f"️ Job {i} is not a dictionary (Type: {type(job).__name__}). Skipping.")
                     continue
                 
                 try:
-                    # Add match score
                     job["career_compass_match_score"] = _self._calculate_match_score(job, query, user_skills)
                     job["fetched_at"] = datetime.now().isoformat()
                     job["normalized_salary"] = _self._normalize_salary(job.get("estimated_salaries"))
                     processed_jobs.append(job)
                 except Exception as e:
                     st.warning(f"⚠️ Error processing job {i}: {e}")
-                    continue
             
             if not processed_jobs:
-                st.warning("ℹ️ No valid jobs could be processed")
-                return {"data": [], "status": "ok", "message": "No valid jobs"}
+                return {"data": [], "status": "ok", "message": "No valid jobs processed"}
             
-            # Sort by match score
             processed_jobs.sort(key=lambda x: x.get("career_compass_match_score", 0), reverse=True)
-            
             data["data"] = processed_jobs
-            st.success(f"✅ Successfully processed {len(processed_jobs)} jobs")
             return data
             
         except requests.exceptions.Timeout:
-            st.error("⏱️ Request timed out after 60 seconds")
-            return {"data": [], "status": "error", "message": "timeout"}
+            return {"data": [], "status": "error", "message": "Timeout"}
         except Exception as e:
-            st.error(f"❌ Unexpected error: {e}")
-            import traceback
-            st.code(traceback.format_exc())
+            st.error(f"❌ Unexpected Error: {e}")
             return {"data": [], "status": "error", "message": str(e)}
     
     def _calculate_match_score(_self, job, query, user_skills=None):
-        if not isinstance(job, dict):
-            return 0.0
-        job_description = job.get("job_description", "")
-        if not job_description:
-            return 0.0
-        
+        if not isinstance(job, dict): return 0.0
+        job_text = (job.get("job_title", "") + " " + str(job.get("job_description", ""))).lower()
         score = 0.0
-        job_text = (job.get("job_title", "") + " " + job_description).lower()
         
         query_terms = [t.strip().lower() for t in query.split() if len(t) > 3]
         if query_terms:
@@ -146,27 +124,10 @@ class JSearchClient:
         return min(1.0, round(score, 2))
     
     def _normalize_salary(_self, salary_data):
-        if not salary_data or not isinstance(salary_data, list):
-            return None
+        if not salary_data or not isinstance(salary_data, list): return None
         try:
             salary = salary_data[0]
-            if not isinstance(salary, dict):
-                return None
-            min_sal = salary.get("min", 0)
-            max_sal = salary.get("max", 0)
-            currency = salary.get("currency", "USD")
-            period = salary.get("period", "YEAR").upper()
-            
-            if period == "HOUR":
-                min_sal = min_sal * 2080
-                max_sal = max_sal * 2080
-            elif period == "MONTH":
-                min_sal = min_sal * 12
-                max_sal = max_sal * 12
-            
-            if currency != "USD":
-                return {"min_annual_usd": None, "max_annual_usd": None, "original": salary, "note": "Currency: " + currency}
-            
-            return {"min_annual_usd": int(min_sal), "max_annual_usd": int(max_sal), "currency": "USD", "period": "YEAR"}
-        except (IndexError, TypeError, KeyError, AttributeError):
+            if not isinstance(salary, dict): return None
+            return {"min_annual_usd": int(salary.get("min", 0)), "max_annual_usd": int(salary.get("max", 0))}
+        except Exception:
             return None
