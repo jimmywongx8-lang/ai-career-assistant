@@ -11,10 +11,72 @@ except ImportError as e:
     st.error(f"⚠️ Import Error: {e}")
     JSearchClient = None
 
-st.set_page_config(page_title="Services - Career Compass", page_icon="🛠️", layout="wide")
+st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-st.title("🛠️ Career Services")
-st.markdown("AI-powered tools to accelerate your career journey")
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .job-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .job-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .employer {
+        font-size: 18px;
+        opacity: 0.9;
+    }
+    .match-badge {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .excellent { background-color: #10b981; }
+    .good { background-color: #f59e0b; }
+    .potential { background-color: #6b7280; }
+    .salary-tag {
+        background-color: rgba(255,255,255,0.2);
+        padding: 5px 10px;
+        border-radius: 5px;
+        margin: 5px;
+        display: inline-block;
+    }
+    .skill-tag {
+        background-color: rgba(255,255,255,0.3);
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        margin: 2px;
+        display: inline-block;
+    }
+    .apply-button {
+        background-color: #ffffff;
+        color: #667eea;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 10px;
+    }
+    .location-tag {
+        opacity: 0.8;
+        font-size: 14px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🧭 Career Compass")
+st.markdown("### AI-powered tools to accelerate your career journey")
 
 if "user_profile" not in st.session_state:
     st.session_state.user_profile = {}
@@ -34,10 +96,12 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ==================== TAB 1: CV UPLOAD ====================
 with tab1:
     st.header("📄 Upload Your CV")
+    st.markdown("Upload your CV to get started with AI-powered career tools")
+    
     uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt"])
     
     if uploaded_file is not None:
-        st.success(f"✅ Uploaded: {uploaded_file.name}")
+        st.success(f"✅ Uploaded: **{uploaded_file.name}**")
         
         try:
             if uploaded_file.type == "application/pdf":
@@ -61,11 +125,12 @@ with tab1:
 # ==================== TAB 2: AI PROFILE ANALYSIS ====================
 with tab2:
     st.header("🔍 AI Profile Analysis")
+    st.markdown("Get AI-powered insights about your CV")
     
     if not st.session_state.cv_text:
-        st.warning("⚠️ Please upload your CV first.")
+        st.warning("⚠️ Please upload your CV in the first tab.")
     else:
-        if st.button("Analyze My Profile", type="primary"):
+        if st.button("🎯 Analyze My Profile", type="primary", use_container_width=True):
             with st.spinner("🤖 Analyzing your CV..."):
                 try:
                     from groq import Groq
@@ -103,9 +168,10 @@ with tab2:
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
 
-# ==================== TAB 3: JOB MATCHING (WITH DEBUG) ====================
+# ==================== TAB 3: JOB MATCHING ====================
 with tab3:
     st.header("💼 AI-Powered Job Matching")
+    st.markdown("Find jobs that match your skills and experience")
     
     if JSearchClient is None:
         st.error("⚠️ Job matching module not loaded.")
@@ -114,36 +180,34 @@ with tab3:
     else:
         col1, col2 = st.columns(2)
         with col1:
-            job_query = st.text_input("Target Role", value="software developer")
+            job_query = st.text_input("🎯 Target Role", value="software developer", 
+                                     help="Enter the job title you're looking for")
         with col2:
-            location = st.text_input("Location", placeholder="Remote, New York, etc.")
+            location = st.text_input("📍 Location", placeholder="Remote, New York, etc.",
+                                    help="Enter location or leave blank for remote")
         
-        with st.expander("🔍 Advanced Filters"):
-            emp_type = st.multiselect("Employment Type", ["FULLTIME", "CONTRACTOR", "PARTTIME"], default=[])
-            date_filter = st.selectbox("Posted Within", ["all", "week", "month"], index=0)
-            num_results = st.slider("Number of Results", 5, 20, 10)
-        
-        # Debug checkbox
-        show_debug = st.checkbox("🔍 Show Debug Information", value=False)
+        with st.expander("🔧 Advanced Filters"):
+            col1, col2 = st.columns(2)
+            with col1:
+                emp_type = st.multiselect("Employment Type", 
+                                         ["FULLTIME", "CONTRACTOR", "PARTTIME"], 
+                                         default=["FULLTIME"])
+            with col2:
+                date_filter = st.selectbox("Posted Within", 
+                                          ["all", "week", "month"], 
+                                          index=0)
         
         if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
-            with st.spinner("🔎 Searching..."):
+            with st.spinner("🔎 Searching for jobs..."):
                 try:
                     # Extract skills from CV
                     user_skills = []
                     if st.session_state.cv_text:
-                        skills_keywords = ["Python", "JavaScript", "React", "Node.js", "Docker", "AWS", "Git", "Agile", "Kubernetes", "Jenkins"]
+                        skills_keywords = ["Python", "JavaScript", "React", "Node.js", 
+                                         "Docker", "AWS", "Git", "Agile", "Kubernetes", "Jenkins"]
                         for skill in skills_keywords:
                             if skill.lower() in st.session_state.cv_text.lower():
                                 user_skills.append(skill)
-                    
-                    if show_debug:
-                        st.info(f"🔍 **Debug Info:**")
-                        st.write(f"- Query: {job_query}")
-                        st.write(f"- Location: {location}")
-                        st.write(f"- Employment Types: {emp_type}")
-                        st.write(f"- Date Filter: {date_filter}")
-                        st.write(f"- Extracted Skills: {user_skills}")
                     
                     # Initialize client and search
                     client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
@@ -156,63 +220,187 @@ with tab3:
                         user_skills=user_skills
                     )
                     
-                    if show_debug:
-                        st.write("📊 **API Response:**")
-                        st.json(results)
-                    
-                    # Display Results
                     if results.get("data") and len(results["data"]) > 0:
-                        st.success(f"✅ Found {len(results['data'])} jobs!")
+                        st.success(f"✅ Found **{len(results['data'])}** matching jobs!")
+                        st.markdown("---")
                         
                         for i, job in enumerate(results["data"]):
-                            # Debug: Check what type job is
-                            if show_debug:
-                                st.write(f"🔍 **Job {i} type:** {type(job)}")
-                                if isinstance(job, dict):
-                                    st.write(f"- Job Title: {job.get('job_title', 'N/A')}")
-                                    st.write(f"- Employer: {job.get('employer_name', 'N/A')}")
-                                    st.write(f"- Match Score: {job.get('career_compass_match_score', 'N/A')}")
-                                else:
-                                    st.error(f"⚠️ Job {i} is not a dictionary! It's a {type(job)}")
-                            
-                            # Skip if not a dict
                             if not isinstance(job, dict):
-                                st.warning(f"⚠️ Skipping job {i} - invalid format")
                                 continue
 
                             match_score = job.get("career_compass_match_score", 0)
                             
+                            # Determine badge class
                             if match_score >= 0.7:
-                                badge = "🟢 Excellent Match"
+                                badge_class = "excellent"
+                                badge_text = "🟢 Excellent Match"
                             elif match_score >= 0.4:
-                                badge = "🟡 Good Match"
+                                badge_class = "good"
+                                badge_text = "🟡 Good Match"
                             else:
-                                badge = "⚪ Potential Fit"
+                                badge_class = "potential"
+                                badge_text = "⚪ Potential Fit"
                             
-                            st.markdown(f"**{job.get('job_title', 'N/A')}** - {job.get('employer_name', 'Unknown')} {badge}")
-                            st.caption(f"{job.get('job_city', '')} {job.get('job_state', '')}")
+                            # Job card
+                            st.markdown(f"""
+                            <div class="job-card">
+                                <div class="job-title">{job.get('job_title', 'N/A')}</div>
+                                <div class="employer">🏢 {job.get('employer_name', 'Unknown')}</div>
+                                <div class="location-tag">📍 {job.get('job_city', '')} {job.get('job_state', '')}</div>
+                                <div class="match-badge {badge_class}">{badge_text} ({match_score*100:.0f}%)</div>
+                            </div>
+                            """, unsafe_allow_html=True)
                             
-                            with st.expander("View Details"):
-                                if job.get("job_required_skills"):
-                                    st.write("**Skills:**", ", ".join(job["job_required_skills"][:5]))
+                            # Job details in expander
+                            with st.expander("📋 View Job Details"):
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    st.markdown("**📝 Description**")
+                                    st.write(job.get("job_description", "No description available"))
+                                
+                                with col2:
+                                    if job.get("job_required_skills"):
+                                        st.markdown("**💡 Required Skills**")
+                                        skills_html = "".join([f'<span class="skill-tag">{s}</span>' 
+                                                              for s in job["job_required_skills"][:8]])
+                                        st.markdown(skills_html, unsafe_allow_html=True)
+                                    
+                                    if job.get("normalized_salary"):
+                                        st.markdown("**💰 Salary Range**")
+                                        salary = job["normalized_salary"]
+                                        if salary.get("min_annual_usd") and salary.get("max_annual_usd"):
+                                            st.markdown(f"""
+                                            <div style="background-color: #f0f9ff; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                                                <strong>${salary['min_annual_usd']:,} - ${salary['max_annual_usd']:,}</strong> / year
+                                            </div>
+                                            """, unsafe_allow_html=True)
+                                
                                 if job.get("job_apply_link"):
-                                    st.link_button("🚀 Apply Now", job["job_apply_link"])
+                                    st.markdown(f"""
+                                    <div style="text-align: center; margin-top: 20px;">
+                                        <a href="{job['job_apply_link']}" target="_blank" 
+                                           style="background-color: #667eea; color: white; 
+                                                  padding: 12px 30px; border-radius: 5px; 
+                                                  text-decoration: none; font-weight: bold;
+                                                  display: inline-block;">
+                                            🚀 Apply Now
+                                        </a>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                            
+                            st.markdown("---")
                     else:
                         st.warning("⚠️ No jobs found. Try different search terms.")
-                        if show_debug:
-                            st.info("💡 The API returned successfully but no jobs were found in the 'data' field.")
                         
                 except Exception as e:
                     st.error(f"❌ Search failed: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
-                    st.error("💡 This error might be due to API issues. Check your JSEARCH_API_KEY in Streamlit secrets.")
 
-# ==================== TAB 4 & 5: PLACEHOLDERS ====================
+# ==================== TAB 4: CV REWRITING ====================
 with tab4:
-    st.header("✍️ CV Rewriting")
-    st.info("Coming soon!")
+    st.header("✍️ AI CV Rewriting")
+    st.markdown("Optimize your CV for specific job descriptions")
+    
+    if not st.session_state.cv_text:
+        st.warning("⚠️ Please upload your CV first.")
+    else:
+        job_description = st.text_area("Paste Job Description", height=150,
+                                      placeholder="Paste the job description you want to optimize your CV for...")
+        
+        if st.button("✨ Rewrite My CV", type="primary", use_container_width=True):
+            if not job_description:
+                st.warning("Please enter a job description")
+            else:
+                with st.spinner("🤖 Optimizing your CV..."):
+                    try:
+                        from groq import Groq
+                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                        
+                        prompt = f"""
+                        Optimize this CV for the following job description:
+                        
+                        CV: {st.session_state.cv_text[:2000]}
+                        
+                        Job Description: {job_description[:1000]}
+                        
+                        Provide an optimized version of the CV that highlights relevant skills and experience.
+                        Keep it professional and concise.
+                        """
+                        
+                        response = client.chat.completions.create(
+                            model="llama-3.1-8b-instant",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=1000
+                        )
+                        
+                        rewritten_cv = response.choices[0].message.content
+                        st.success("✅ CV Optimized!")
+                        st.text_area("Optimized CV", rewritten_cv, height=400)
+                        
+                        st.download_button("📥 Download Optimized CV", 
+                                         data=rewritten_cv, 
+                                         file_name="optimized_cv.txt",
+                                         mime="text/plain")
+                    except Exception as e:
+                        st.error(f"Rewriting failed: {e}")
 
+# ==================== TAB 5: COVER LETTER ====================
 with tab5:
-    st.header("📧 Cover Letter")
-    st.info("Coming soon!")
+    st.header("📧 AI Cover Letter Generator")
+    st.markdown("Generate personalized cover letters in seconds")
+    
+    if not st.session_state.cv_text:
+        st.warning("⚠️ Please upload your CV first.")
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            company_name = st.text_input("🏢 Company Name", 
+                                        placeholder="e.g., Google, Microsoft")
+        with col2:
+            job_title = st.text_input("💼 Job Title", 
+                                     placeholder="e.g., Software Engineer")
+        
+        job_desc = st.text_area("📝 Job Description", height=150,
+                               placeholder="Paste the job description...")
+        
+        if st.button("✍️ Generate Cover Letter", type="primary", use_container_width=True):
+            if not company_name or not job_title:
+                st.warning("Please fill in company and job title")
+            else:
+                with st.spinner("🤖 Writing your cover letter..."):
+                    try:
+                        from groq import Groq
+                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                        
+                        prompt = f"""
+                        Write a professional cover letter for the following:
+                        
+                        My CV: {st.session_state.cv_text[:1500]}
+                        Company: {company_name}
+                        Position: {job_title}
+                        Job Details: {job_desc[:500] if job_desc else "Not provided"}
+                        
+                        Make it professional, concise (300-400 words), and highlight relevant skills.
+                        """
+                        
+                        response = client.chat.completions.create(
+                            model="llama-3.1-8b-instant",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=600
+                        )
+                        
+                        cover_letter = response.choices[0].message.content
+                        st.success("✅ Cover Letter Generated!")
+                        st.text_area("Your Cover Letter", cover_letter, height=400)
+                        
+                        st.download_button("📥 Download Cover Letter", 
+                                         data=cover_letter, 
+                                         file_name="cover_letter.txt",
+                                         mime="text/plain")
+                    except Exception as e:
+                        st.error(f"Generation failed: {e}")
+
+# Footer
+st.markdown("---")
+st.markdown("<div style='text-align: center; color: #666;'>Made with ❤️ using AI</div>", 
+           unsafe_allow_html=True)
