@@ -3,6 +3,7 @@ import streamlit as st
 import sys
 from pathlib import Path
 import json
+import hashlib
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -14,7 +15,6 @@ except ImportError as e:
 
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-# Custom CSS
 st.markdown("""
 <style>
     .job-card {
@@ -31,21 +31,13 @@ st.markdown("""
     .excellent { background-color: #10b981; }
     .good { background-color: #f59e0b; }
     .potential { background-color: #6b7280; }
-    .skill-tag { 
-        background-color: rgba(255,255,255,0.3); 
-        padding: 3px 8px; 
-        border-radius: 12px; 
-        font-size: 12px; 
-        margin: 2px; 
-        display: inline-block; 
-    }
+    .skill-tag { background-color: rgba(255,255,255,0.3); padding: 3px 8px; border-radius: 12px; font-size: 12px; margin: 2px; display: inline-block; }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🧭 Career Compass")
 st.markdown("### AI-powered tools to accelerate your career journey")
 
-# Initialize session state
 if "user_profile" not in st.session_state:
     st.session_state.user_profile = {}
 if "cv_text" not in st.session_state:
@@ -55,7 +47,7 @@ if "saved_jobs" not in st.session_state:
 if "search_results" not in st.session_state:
     st.session_state.search_results = None
 
-# Sidebar - Saved Jobs
+# Sidebar
 with st.sidebar:
     st.header("💼 Saved Jobs")
     if len(st.session_state.saved_jobs) == 0:
@@ -63,16 +55,17 @@ with st.sidebar:
     else:
         st.success(f"✅ {len(st.session_state.saved_jobs)} job(s) saved")
         for i, job in enumerate(st.session_state.saved_jobs):
-            with st.expander(f"💾 {job.get('job_title', 'Job')[:30]}..."):
+            job_title = job.get('job_title', 'Job')[:30]
+            with st.expander(f"💾 {job_title}..."):
                 st.write(f"🏢 {job.get('employer_name', 'Unknown')}")
-                if st.button("🗑️ Remove", key=f"remove_{i}"):
+                if st.button("🗑️ Remove", key=f"remove_job_{i}_{hash(str(job))}"):
                     st.session_state.saved_jobs.pop(i)
                     st.rerun()
         
         if len(st.session_state.saved_jobs) > 0:
             jobs_json = json.dumps(st.session_state.saved_jobs, indent=2)
             st.download_button(
-                label="📥 Download Saved Jobs",
+                label="📥 Download",
                 data=jobs_json,
                 file_name="saved_jobs.json",
                 mime="application/json",
@@ -83,10 +76,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📄 CV Upload", "🔍 AI Profile Analysis", "💼 Job Matching", "✍️ CV Rewriting", "📧 Cover Letter"
 ])
 
-# ==================== TAB 1: CV UPLOAD ====================
+# TAB 1
 with tab1:
     st.header("📄 Upload Your CV")
-    uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt"])
+    uploaded_file = st.file_uploader("Choose a file", type=["pdf", "txt"], key="cv_uploader")
     
     if uploaded_file is not None:
         st.success(f"✅ Uploaded: **{uploaded_file.name}**")
@@ -104,13 +97,13 @@ with tab1:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ==================== TAB 2: AI PROFILE ANALYSIS ====================
+# TAB 2
 with tab2:
     st.header("🔍 AI Profile Analysis")
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
     else:
-        if st.button("🎯 Analyze My Profile", type="primary", use_container_width=True):
+        if st.button("🎯 Analyze My Profile", type="primary", use_container_width=True, key="analyze_btn"):
             with st.spinner("🤖 Analyzing..."):
                 try:
                     from groq import Groq
@@ -126,7 +119,7 @@ with tab2:
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
 
-# ==================== TAB 3: JOB MATCHING ====================
+# TAB 3
 with tab3:
     st.header("💼 AI-Powered Job Matching")
     
@@ -137,15 +130,15 @@ with tab3:
     else:
         col1, col2 = st.columns(2)
         with col1:
-            job_query = st.text_input("🎯 Target Role", value="software developer")
+            job_query = st.text_input("🎯 Target Role", value="software developer", key="job_query_input")
         with col2:
-            location = st.text_input("📍 Location", placeholder="Remote, New York, etc.")
+            location = st.text_input("📍 Location", placeholder="Remote, New York, etc.", key="location_input")
         
         with st.expander("🔧 Advanced Filters"):
-            emp_type = st.multiselect("Employment Type", ["FULLTIME", "CONTRACTOR", "PARTTIME"], default=["FULLTIME"])
-            date_filter = st.selectbox("Posted Within", ["all", "week", "month"], index=0)
+            emp_type = st.multiselect("Employment Type", ["FULLTIME", "CONTRACTOR", "PARTTIME"], default=["FULLTIME"], key="emp_type_sel")
+            date_filter = st.selectbox("Posted Within", ["all", "week", "month"], index=0, key="date_filter_sel")
         
-        if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
+        if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True, key="find_jobs_btn"):
             with st.spinner("🔎 Searching..."):
                 try:
                     user_skills = []
@@ -167,7 +160,6 @@ with tab3:
                 except Exception as e:
                     st.error(f"❌ Search failed: {e}")
         
-        # Display saved results
         if st.session_state.search_results:
             st.markdown("---")
             
@@ -175,7 +167,6 @@ with tab3:
                 if not isinstance(job, dict):
                     continue
                 
-                # Safe data extraction
                 job_title = job.get("job_title", "Unknown Position")
                 employer = job.get("employer_name", "Unknown Company")
                 city = job.get("job_city", "")
@@ -186,7 +177,6 @@ with tab3:
                 apply_link = job.get("job_apply_link", "#")
                 match_score = job.get("career_compass_match_score", 0)
                 
-                # Determine badge
                 if match_score >= 0.7:
                     badge_class, badge_text = "excellent", "🟢 Excellent Match"
                 elif match_score >= 0.4:
@@ -194,13 +184,11 @@ with tab3:
                 else:
                     badge_class, badge_text = "potential", "⚪ Potential Fit"
                 
-                # Check if saved
                 is_saved = any(
                     s.get("job_title") == job_title and s.get("employer_name") == employer
                     for s in st.session_state.saved_jobs
                 )
                 
-                # Job Card
                 st.markdown(f"""
                 <div class="job-card">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -214,19 +202,15 @@ with tab3:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Save Button
                 col1, col2 = st.columns([4, 1])
                 with col1:
-                    if is_saved:
-                        st.success("💾 Saved")
-                    else:
-                        st.info("Click to save this job")
+                    st.success("💾 Saved") if is_saved else st.info("Click to save")
                 
                 with col2:
                     btn_label = "💾 Saved" if is_saved else "🔖 Save"
                     btn_type = "secondary" if is_saved else "primary"
-                    if st.button(btn_label, key=f"save_{i}_{job_title}_{employer}", 
-                                type=btn_type, use_container_width=True):
+                    unique_key = f"save_btn_{i}_{hashlib.md5(f'{job_title}{employer}'.encode()).hexdigest()}"
+                    if st.button(btn_label, key=unique_key, type=btn_type, use_container_width=True):
                         if is_saved:
                             st.session_state.saved_jobs = [
                                 j for j in st.session_state.saved_jobs 
@@ -236,7 +220,6 @@ with tab3:
                             st.session_state.saved_jobs.append(job)
                         st.rerun()
                 
-                # Job Details
                 with st.expander("📋 View Details"):
                     c1, c2 = st.columns(2)
                     with c1:
@@ -267,14 +250,14 @@ with tab3:
                 
                 st.markdown("---")
 
-# ==================== TAB 4: CV REWRITING ====================
+# TAB 4
 with tab4:
     st.header("✍️ CV Rewriting")
     if not st.session_state.cv_text:
         st.warning("⚠️ Upload CV first")
     else:
-        job_desc = st.text_area("Job Description", height=150)
-        if st.button("✨ Rewrite CV", type="primary", use_container_width=True):
+        job_desc = st.text_area("Job Description", height=150, key="cv_rewrite_desc")
+        if st.button("✨ Rewrite CV", type="primary", use_container_width=True, key="cv_rewrite_btn"):
             if job_desc:
                 with st.spinner("Optimizing..."):
                     try:
@@ -287,22 +270,24 @@ with tab4:
                             max_tokens=1000
                         )
                         st.success("✅ Done!")
-                        st.text_area("Optimized CV", response.choices[0].message.content, height=400)
+                        st.text_area("Optimized CV", response.choices[0].message.content, height=400, key="cv_rewrite_output")
                     except Exception as e:
                         st.error(f"Error: {e}")
 
-# ==================== TAB 5: COVER LETTER ====================
+# TAB 5
 with tab5:
     st.header("📧 Cover Letter")
     if not st.session_state.cv_text:
         st.warning("⚠️ Upload CV first")
     else:
         col1, col2 = st.columns(2)
-        with col1: company = st.text_input("Company")
-        with col2: title = st.text_input("Job Title")
-        job_desc = st.text_area("Job Description", height=150)
+        with col1: 
+            company = st.text_input("Company", key="cl_company")
+        with col2: 
+            title = st.text_input("Job Title", key="cl_title")
+        job_desc = st.text_area("Job Description", height=150, key="cl_desc")
         
-        if st.button("✍️ Generate", type="primary", use_container_width=True):
+        if st.button("✍️ Generate", type="primary", use_container_width=True, key="cl_generate_btn"):
             if company and title:
                 with st.spinner("Writing..."):
                     try:
@@ -315,7 +300,7 @@ with tab5:
                             max_tokens=600
                         )
                         st.success("✅ Done!")
-                        st.text_area("Cover Letter", response.choices[0].message.content, height=400)
+                        st.text_area("Cover Letter", response.choices[0].message.content, height=400, key="cl_output")
                     except Exception as e:
                         st.error(f"Error: {e}")
 
