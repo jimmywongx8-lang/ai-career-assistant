@@ -58,7 +58,7 @@ with tab1:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ==================== TAB 2: AI PROFILE ANALYSIS (UPDATED) ====================
+# ==================== TAB 2: AI PROFILE ANALYSIS ====================
 with tab2:
     st.header("🔍 AI Profile Analysis")
     
@@ -71,7 +71,6 @@ with tab2:
                     from groq import Groq
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                     
-                    # UPDATED PROMPT: Asks for Markdown report instead of JSON
                     prompt = f"""
                     You are an expert career coach. Analyze the following CV and provide a professional assessment.
                     
@@ -99,13 +98,12 @@ with tab2:
                     st.session_state.user_profile["analyzed"] = True
                     
                     st.success("✅ Analysis Complete!")
-                    # Display the clean markdown
                     st.markdown(analysis)
                     
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
 
-# ==================== TAB 3: JOB MATCHING ====================
+# ==================== TAB 3: JOB MATCHING (WITH DEBUG) ====================
 with tab3:
     st.header("💼 AI-Powered Job Matching")
     
@@ -125,16 +123,29 @@ with tab3:
             date_filter = st.selectbox("Posted Within", ["all", "week", "month"], index=0)
             num_results = st.slider("Number of Results", 5, 20, 10)
         
+        # Debug checkbox
+        show_debug = st.checkbox("🔍 Show Debug Information", value=False)
+        
         if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
             with st.spinner("🔎 Searching..."):
                 try:
+                    # Extract skills from CV
                     user_skills = []
                     if st.session_state.cv_text:
-                        skills_keywords = ["Python", "JavaScript", "React", "Node.js", "Docker", "AWS", "Git", "Agile"]
+                        skills_keywords = ["Python", "JavaScript", "React", "Node.js", "Docker", "AWS", "Git", "Agile", "Kubernetes", "Jenkins"]
                         for skill in skills_keywords:
                             if skill.lower() in st.session_state.cv_text.lower():
                                 user_skills.append(skill)
                     
+                    if show_debug:
+                        st.info(f"🔍 **Debug Info:**")
+                        st.write(f"- Query: {job_query}")
+                        st.write(f"- Location: {location}")
+                        st.write(f"- Employment Types: {emp_type}")
+                        st.write(f"- Date Filter: {date_filter}")
+                        st.write(f"- Extracted Skills: {user_skills}")
+                    
+                    # Initialize client and search
                     client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
                     results = client.search_jobs(
                         query=job_query,
@@ -145,12 +156,28 @@ with tab3:
                         user_skills=user_skills
                     )
                     
+                    if show_debug:
+                        st.write("📊 **API Response:**")
+                        st.json(results)
+                    
+                    # Display Results
                     if results.get("data") and len(results["data"]) > 0:
                         st.success(f"✅ Found {len(results['data'])} jobs!")
                         
                         for i, job in enumerate(results["data"]):
-                            # Safe check to ensure job is a dictionary
+                            # Debug: Check what type job is
+                            if show_debug:
+                                st.write(f"🔍 **Job {i} type:** {type(job)}")
+                                if isinstance(job, dict):
+                                    st.write(f"- Job Title: {job.get('job_title', 'N/A')}")
+                                    st.write(f"- Employer: {job.get('employer_name', 'N/A')}")
+                                    st.write(f"- Match Score: {job.get('career_compass_match_score', 'N/A')}")
+                                else:
+                                    st.error(f"⚠️ Job {i} is not a dictionary! It's a {type(job)}")
+                            
+                            # Skip if not a dict
                             if not isinstance(job, dict):
+                                st.warning(f"⚠️ Skipping job {i} - invalid format")
                                 continue
 
                             match_score = job.get("career_compass_match_score", 0)
@@ -171,10 +198,15 @@ with tab3:
                                 if job.get("job_apply_link"):
                                     st.link_button("🚀 Apply Now", job["job_apply_link"])
                     else:
-                        st.warning("No jobs found. Try different search terms.")
+                        st.warning("⚠️ No jobs found. Try different search terms.")
+                        if show_debug:
+                            st.info("💡 The API returned successfully but no jobs were found in the 'data' field.")
                         
                 except Exception as e:
-                    st.error(f"Search failed: {e}")
+                    st.error(f"❌ Search failed: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    st.error("💡 This error might be due to API issues. Check your JSEARCH_API_KEY in Streamlit secrets.")
 
 # ==================== TAB 4 & 5: PLACEHOLDERS ====================
 with tab4:
