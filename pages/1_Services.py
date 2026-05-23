@@ -44,29 +44,17 @@ if "cv_text" not in st.session_state:
 
 with st.sidebar:
     st.header("💼 Saved Jobs")
-    
     if st.session_state.saved_jobs:
-        st.success(f"✅ {len(st.session_state.saved_jobs)} jobs saved")
-        
+        st.success(f"✅ {len(st.session_state.saved_jobs)} saved")
         for i, job in enumerate(st.session_state.saved_jobs):
-            title = job.get('job_title', 'Unknown')[:35]
+            title = str(job.get('job_title', 'Job'))[:35]
             with st.expander(f"**{i+1}.** {title}..."):
                 st.write(f"🏢 {job.get('employer_name', 'N/A')}")
-                st.write(f"📍 {job.get('job_city', '')} {job.get('job_state', '')}")
-                score = job.get('career_compass_match_score', 0)
-                if score >= 0.7: st.write("🟢 Excellent Match")
-                elif score >= 0.4: st.write("🟡 Good Match")
-                else: st.write("⚪ Potential Fit")
-                
-                if st.button(f"🗑️ Remove", key=f"remove_job_{i}"):
+                if st.button(f"🗑️ Remove", key=f"remove_{i}"):
                     st.session_state.saved_jobs.pop(i)
                     st.rerun()
         
         st.divider()
-        
-        st.subheader("📤 Export Jobs")
-        st.markdown("Download your saved jobs to Excel")
-        
         export_data = []
         for job in st.session_state.saved_jobs:
             export_data.append({
@@ -77,155 +65,119 @@ with st.sidebar:
                 "Skills": ", ".join(job.get("job_required_skills", [])[:5]),
                 "Apply Link": job.get("job_apply_link", "#")
             })
-        
         df = pd.DataFrame(export_data)
         csv = df.to_csv(index=False)
+        st.download_button("📥 Download CSV", data=csv, file_name="jobs.csv", mime="text/csv", use_container_width=True)
         
-        st.download_button(
-            label="📥 Download as Excel/CSV",
-            data=csv,
-            file_name="my_saved_jobs.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-        
-        if st.button("🗑️ Clear All Saved", key="clear_all_btn", type="secondary", use_container_width=True):
+        if st.button("🗑️ Clear All", key="clear_all", use_container_width=True):
             st.session_state.saved_jobs = []
             st.rerun()
-            
     else:
-        st.info("No saved jobs yet. Click 'Save' on jobs you like!")
+        st.info("No saved jobs")
 
-# DEFINE ALL TABS
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼 Jobs", "✍️ CV Rewrite", "📧 Cover Letter"])
 
-# TAB 1: CV UPLOAD
 with tab1:
-    st.header("Upload Your CV")
-    st.markdown("Upload your CV to get started with AI-powered career tools")
-    
-    uploaded = st.file_uploader("Choose a file", type=["txt", "pdf"], key="cv_uploader_main")
+    st.header("Upload CV")
+    uploaded = st.file_uploader("Choose file", type=["txt", "pdf"], key="cv_up")
     if uploaded:
         try:
             if uploaded.type == "application/pdf":
                 import PyPDF2
                 from io import BytesIO
-                pdf_file = BytesIO(uploaded.read())
-                reader = PyPDF2.PdfReader(pdf_file)
-                text_content = ""
+                reader = PyPDF2.PdfReader(BytesIO(uploaded.read()))
+                text = ""
                 for page in reader.pages:
-                    text_content += page.extract_text() + "\n"
-                st.session_state.cv_text = text_content
-                st.success(f"✅ PDF Uploaded ({len(uploaded.getvalue()) / 1024:.1f} KB)")
-                with st.expander("📋 Preview"):
-                    st.text_area("CV Content", text_content[:1000], height=200)
-            elif uploaded.type == "text/plain":
-                st.session_state.cv_text = uploaded.read().decode("utf-8")
-                st.success("✅ Text File Uploaded!")
-                with st.expander("📋 Preview"):
-                    st.text_area("CV Content", st.session_state.cv_text[:1000], height=200)
+                    text += page.extract_text() + "\n"
+                st.session_state.cv_text = text
+                st.success("✅ PDF uploaded")
             else:
-                st.warning("Please use .txt or .pdf")
+                st.session_state.cv_text = uploaded.read().decode("utf-8")
+                st.success("✅ Text uploaded")
         except Exception as e:
             st.error(f"Error: {e}")
 
-# TAB 2: ANALYSIS
 with tab2:
-    st.header("AI Profile Analysis")
+    st.header("AI Analysis")
     if not st.session_state.cv_text:
-        st.warning("⚠️ Upload CV first")
+        st.warning("Upload CV first")
     elif st.button("🎯 Analyze", key="btn_analyze", type="primary", use_container_width=True):
-        with st.spinner("🤖 Analyzing..."):
-            try:
-                from groq import Groq
-                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                prompt = f"Analyze CV: {st.session_state.cv_text[:2000]}"
-                resp = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                st.success("✅ Analysis Complete!")
-                st.markdown(resp.choices[0].message.content)
-            except Exception as e:
-                st.error(f"Error: {e}")
+        try:
+            from groq import Groq
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            resp = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": f"Analyze: {st.session_state.cv_text[:2000]}"}]
+            )
+            st.write(resp.choices[0].message.content)
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-# TAB 3: JOBS - SMART SEARCH
 with tab3:
-    st.header("AI-Powered Job Matching")
-    st.markdown("Find jobs matching your background")
+    st.header("Job Matching")
     
     if JSearchClient is None:
         st.error("Module not loaded")
     else:
-        # Input fields for job search
-        st.markdown("**🎯 Target Role**")
         col1, col2 = st.columns([3, 1])
         with col1:
-            target_role = st.text_input(
-                "Job Title",
-                placeholder="e.g., Strategy Consultant, Business Analyst",
-                help="Enter your target role",
-                key="target_role_input"
-            )
+            target_role = st.text_input("Target Role", placeholder="e.g., Strategy Consultant", key="target_role")
         with col2:
-            search_location = st.text_input("Location", placeholder="Remote", key="search_location_input")
+            location = st.text_input("Location", placeholder="Remote", key="location")
         
-        # Smart skill detection from CV
-        detected_skills = []
+        # Detect skills from CV
+        detected = []
         if st.session_state.cv_text:
             cv_lower = st.session_state.cv_text.lower()
-            strategy_keywords = ["strategy", "consulting", "analysis", "management", "finance", "operations", "marketing"]
-            for kw in strategy_keywords:
+            for kw in ["strategy", "consulting", "analysis", "management", "finance"]:
                 if kw in cv_lower:
-                    detected_skills.append(kw.title())
-            
-            tech_skills = ["Python", "SQL", "Excel", "Tableau", "PowerBI"]
-            for skill in tech_skills:
-                if skill.lower() in cv_lower:
-                    detected_skills.append(skill)
-            
-            if detected_skills:
-                st.info(f"💡 Detected: {', '.join(detected_skills[:6])}")
+                    detected.append(kw.title())
+            if detected:
+                st.info(f"💡 Detected: {', '.join(detected)}")
         
-        if st.button("🔍 Search Jobs", key="btn_search_main", type="primary"):
-            search_query = target_role.strip() if target_role else "consultant"
-            search_skills = detected_skills if detected_skills else ["Strategy", "Analysis"]
-            
+        if st.button("🔍 Search", key="btn_search", type="primary"):
+            query = target_role.strip() if target_role else "consultant"
             try:
-                client = JSearchClient(api_key=st.secrets.get("JSEARCH_API_KEY", "demo-key"))
-                results = client.search_jobs(
-                    query=search_query,
-                    location=search_location if search_location else None,
-                    num_pages=1,
-                    user_skills=search_skills
-                )
+                client = JSearchClient(api_key=st.secrets.get("JSEARCH_API_KEY", ""))
+                results = client.search_jobs(query=query, location=location if location else None, user_skills=detected)
                 
-                st.session_state.search_results = results.get("data", [])
-                st.success(f"Found {len(st.session_state.search_results)} jobs for **{search_query}**!")
+                # CRITICAL: Convert to plain Python objects
+                clean_results = []
+                for job in results.get("data", []):
+                    clean_job = {
+                        "job_title": str(job.get("job_title", "Job")),
+                        "employer_name": str(job.get("employer_name", "Company")),
+                        "job_city": str(job.get("job_city", "")),
+                        "job_state": str(job.get("job_state", "")),
+                        "job_description": str(job.get("job_description", "")),
+                        "job_required_skills": [str(s) for s in (job.get("job_required_skills") or [])],
+                        "job_apply_link": str(job.get("job_apply_link", "#")),
+                        "career_compass_match_score": float(job.get("career_compass_match_score", 0)),
+                        "normalized_salary": job.get("normalized_salary", {})
+                    }
+                    clean_results.append(clean_job)
+                
+                st.session_state.search_results = clean_results
+                st.success(f"Found {len(clean_results)} jobs!")
             except Exception as e:
                 st.error(f"Error: {e}")
         
-        # Display jobs
         if st.session_state.search_results:
             st.markdown("---")
             for idx, job in enumerate(st.session_state.search_results):
-                title = str(job.get("job_title", "Job"))
-                company = str(job.get("employer_name", "Company"))
-                city = str(job.get("job_city", ""))
-                desc = str(job.get("job_description", ""))[:200]
-                skills = job.get("job_required_skills", [])
-                apply_url = str(job.get("job_apply_link", "#"))
-                score = float(job.get("career_compass_match_score", 0))
-                salary = job.get("normalized_salary", {})
+                # Extract plain data
+                title = job["job_title"]
+                company = job["employer_name"]
+                city = job["job_city"]
+                desc = job["job_description"][:200]
+                skills = job["job_required_skills"]
+                apply_url = job["job_apply_link"]
+                score = job["career_compass_match_score"]
                 
-                if score >= 0.7: badge = "🟢 Excellent"
-                elif score >= 0.4: badge = "🟡 Good"
-                else: badge = "⚪ Match"
+                badge = "🟢 Excellent" if score >= 0.7 else "🟡 Good" if score >= 0.4 else "⚪ Match"
                 
-                is_saved = any(
-                    str(s.get("job_title")) == title and str(s.get("employer_name")) == company
-                    for s in st.session_state.saved_jobs
-                )
+                is_saved = any(str(s.get("job_title")) == title and str(s.get("employer_name")) == company 
+                              for s in st.session_state.saved_jobs)
                 
                 st.markdown(f"""
                 <div class="job-card">
@@ -235,78 +187,79 @@ with tab3:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                col1, col2 = st.columns([4, 1])
-                with col1:
+                c1, c2 = st.columns([4, 1])
+                with c1:
                     st.success("💾 Saved") if is_saved else st.info("Click Save")
-                with col2:
+                with c2:
                     key = f"save_{idx}_{hashlib.md5(f'{title}{company}'.encode()).hexdigest()}"
                     if st.button("💾 Save", key=key):
                         if is_saved:
                             st.session_state.saved_jobs = [j for j in st.session_state.saved_jobs 
                                                            if not (str(j.get("job_title")) == title and str(j.get("employer_name")) == company)]
                         else:
-                            st.session_state.saved_jobs.append(job.copy())
+                            # Save as plain dict
+                            st.session_state.saved_jobs.append({
+                                "job_title": title,
+                                "employer_name": company,
+                                "job_city": city,
+                                "job_description": desc,
+                                "job_required_skills": skills,
+                                "job_apply_link": apply_url,
+                                "career_compass_match_score": score
+                            })
                         st.rerun()
                 
                 with st.expander("📋 View Details"):
-                    st.write(f"**Description:** {desc}")
+                    st.write(f"**Desc:** {desc}")
                     if skills:
-                        st.write(f"**Skills:** {', '.join(str(s) for s in skills[:5])}")
+                        st.write(f"**Skills:** {', '.join(skills[:5])}")
                     if apply_url != "#":
                         st.markdown(f"[🚀 Apply]({apply_url})")
                 st.markdown("---")
 
-# TAB 4: CV REWRITE
 with tab4:
-    st.header("✍️ AI CV Rewriting")
+    st.header("CV Rewrite")
     if not st.session_state.cv_text:
-        st.warning("⚠️ Upload CV first")
+        st.warning("Upload CV first")
     else:
-        option = st.radio("Choose option:", ["📋 Select saved job", "✍️ Paste manually"], key="rewrite_option")
+        opt = st.radio("Option:", ["Select saved job", "Paste manually"], key="rewrite_opt")
         job_desc = ""
-        
-        if option == "📋 Select saved job" and st.session_state.saved_jobs:
-            job_options = [f"{j.get('job_title')} at {j.get('employer_name')}" for j in st.session_state.saved_jobs]
-            selected = st.selectbox("Select job:", job_options, key="job_selector_rewrite")
-            idx = job_options.index(selected)
+        if opt == "Select saved job" and st.session_state.saved_jobs:
+            opts = [f"{j.get('job_title')} at {j.get('employer_name')}" for j in st.session_state.saved_jobs]
+            sel = st.selectbox("Select:", opts, key="rewrite_sel")
+            idx = opts.index(sel)
             job_desc = st.session_state.saved_jobs[idx].get("job_description", "")
-            st.info(f"Using: {selected}")
+            st.info(f"Using: {sel}")
         else:
-            job_desc = st.text_area("Paste job description:", height=150, key="job_desc_manual")
+            job_desc = st.text_area("Paste description:", height=150, key="rewrite_desc")
         
-        if st.button("✨ Rewrite CV", key="btn_rewrite", type="primary", use_container_width=True):
+        if st.button("✨ Rewrite", key="btn_rewrite", type="primary", use_container_width=True):
             if job_desc:
-                with st.spinner("🤖 Optimizing..."):
-                    try:
-                        from groq import Groq
-                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                        prompt = f"Optimize CV for: {job_desc[:1000]}\nCV: {st.session_state.cv_text[:2000]}"
-                        resp = client.chat.completions.create(
-                            model="llama-3.1-8b-instant",
-                            messages=[{"role": "user", "content": prompt}],
-                            max_tokens=1000
-                        )
-                        st.success("✅ Done!")
-                        st.text_area("Optimized CV", resp.choices[0].message.content, height=400)
-                        st.download_button("📥 Download", resp.choices[0].message.content, "optimized_cv.txt")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                try:
+                    from groq import Groq
+                    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    prompt = f"Optimize CV: {st.session_state.cv_text[:2000]}\nFor: {job_desc[:1000]}"
+                    resp = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": prompt}], max_tokens=1000)
+                    st.success("✅ Done!")
+                    st.text_area("Optimized CV", resp.choices[0].message.content, height=400)
+                    st.download_button("📥 Download", resp.choices[0].message.content, "cv.txt")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
-# TAB 5: COVER LETTER
 with tab5:
-    st.header("📧 Cover Letter Generator")
+    st.header("Cover Letter")
     if not st.session_state.cv_text:
-        st.warning("⚠️ Upload CV first")
+        st.warning("Upload CV first")
     else:
-        option = st.radio("Choose option:", ["📋 Select saved job", "✍️ Enter manually"], key="cl_option")
+        opt = st.radio("Option:", ["Select saved job", "Enter manually"], key="cl_opt")
         company = ""
         title = ""
         job_desc = ""
         
-        if option == "📋 Select saved job" and st.session_state.saved_jobs:
-            job_options = [f"{j.get('job_title')} at {j.get('employer_name')}" for j in st.session_state.saved_jobs]
-            selected = st.selectbox("Select job:", job_options, key="job_selector_cl")
-            idx = job_options.index(selected)
+        if opt == "Select saved job" and st.session_state.saved_jobs:
+            opts = [f"{j.get('job_title')} at {j.get('employer_name')}" for j in st.session_state.saved_jobs]
+            sel = st.selectbox("Select:", opts, key="cl_sel")
+            idx = opts.index(sel)
             job = st.session_state.saved_jobs[idx]
             company = job.get("employer_name", "")
             title = job.get("job_title", "")
@@ -314,26 +267,21 @@ with tab5:
             st.info(f"Using: {company} - {title}")
         else:
             c1, c2 = st.columns(2)
-            with c1: company = st.text_input("Company", key="cl_company")
-            with c2: title = st.text_input("Job Title", key="cl_title")
-            job_desc = st.text_area("Job Description", height=150, key="cl_desc")
+            with c1: company = st.text_input("Company", key="cl_comp")
+            with c2: title = st.text_input("Title", key="cl_title")
+            job_desc = st.text_area("Description", height=150, key="cl_desc")
         
         if st.button("✍️ Generate", key="btn_cl", type="primary", use_container_width=True):
             if company and title:
-                with st.spinner("🤖 Writing..."):
-                    try:
-                        from groq import Groq
-                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                        prompt = f"Cover letter for {company} - {title}.\nCV: {st.session_state.cv_text[:1500]}\nJob: {job_desc[:500]}"
-                        resp = client.chat.completions.create(
-                            model="llama-3.1-8b-instant",
-                            messages=[{"role": "user", "content": prompt}],
-                            max_tokens=600
-                        )
-                        st.success("✅ Done!")
-                        st.text_area("Cover Letter", resp.choices[0].message.content, height=400)
-                        st.download_button("📥 Download", resp.choices[0].message.content, "cover_letter.txt")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                try:
+                    from groq import Groq
+                    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    prompt = f"Cover letter for {company} - {title}.\nCV: {st.session_state.cv_text[:1500]}\nJob: {job_desc[:500]}"
+                    resp = client.chat.completions.create(model="llama-3.1-8b-instant", messages=[{"role": "user", "content": prompt}], max_tokens=600)
+                    st.success("✅ Done!")
+                    st.text_area("Cover Letter", resp.choices[0].message.content, height=400)
+                    st.download_button("📥 Download", resp.choices[0].message.content, "cl.txt")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
-st.caption("Made with ❤️ using AI")
+st.caption("Made with ❤️")
