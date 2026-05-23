@@ -15,6 +15,7 @@ class JSearchClient:
         }
 
     def _get_mock_jobs(_self):
+        """Return sample jobs for demo purposes"""
         return [
             {
                 "job_title": "Senior Software Engineer",
