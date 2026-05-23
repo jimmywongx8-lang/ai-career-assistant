@@ -15,7 +15,6 @@ class JSearchClient:
         }
 
     def _get_mock_jobs(_self):
-        """Return sample jobs based on John Smith's CV for demo purposes"""
         return [
             {
                 "job_title": "Senior Software Engineer",
@@ -131,7 +130,6 @@ class JSearchClient:
                     st.info("💡 Using demo jobs instead")
                     jobs = _self._get_mock_jobs()
             
-            # Process jobs
             processed_jobs = []
             for job in jobs:
                 if not isinstance(job, dict):
