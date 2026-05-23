@@ -3,10 +3,8 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-# Ensure we can import from the parent directory (project root)
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Import JSearchClient now that __init__.py is fixed
 try:
     from modules.jsearch_client import JSearchClient
 except ImportError as e:
@@ -15,7 +13,7 @@ except ImportError as e:
 
 st.set_page_config(page_title="Services - Career Compass", page_icon="🛠️", layout="wide")
 
-st.title("️ Career Services")
+st.title("🛠️ Career Services")
 st.markdown("AI-powered tools to accelerate your career journey")
 
 if "user_profile" not in st.session_state:
@@ -60,7 +58,7 @@ with tab1:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ==================== TAB 2: AI PROFILE ANALYSIS ====================
+# ==================== TAB 2: AI PROFILE ANALYSIS (UPDATED) ====================
 with tab2:
     st.header("🔍 AI Profile Analysis")
     
@@ -68,17 +66,32 @@ with tab2:
         st.warning("⚠️ Please upload your CV first.")
     else:
         if st.button("Analyze My Profile", type="primary"):
-            with st.spinner("🤖 Analyzing..."):
+            with st.spinner("🤖 Analyzing your CV..."):
                 try:
                     from groq import Groq
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                     
-                    prompt = f"""Analyze this CV:\n{st.session_state.cv_text[:3000]}\n\nProvide JSON with: skills, experience_years, target_roles, strengths, improvements."""
+                    # UPDATED PROMPT: Asks for Markdown report instead of JSON
+                    prompt = f"""
+                    You are an expert career coach. Analyze the following CV and provide a professional assessment.
+                    
+                    CV Content:
+                    {st.session_state.cv_text[:3000]}
+                    
+                    Please provide the analysis in a clean, readable Markdown format with the following sections:
+                    
+                    1. **🎯 Target Roles**: (Suggest 3-4 suitable job titles)
+                    2. **💡 Key Skills**: (List top technical and soft skills found)
+                    3. **✅ Top Strengths**: (Bullet points of what they do well)
+                    4. **🚀 Areas for Improvement**: (Constructive feedback on what to add or fix)
+                    
+                    Do NOT output JSON or code blocks. Just use bold headers and bullet points.
+                    """
                     
                     response = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
                         messages=[{"role": "user", "content": prompt}],
-                        max_tokens=500
+                        max_tokens=600
                     )
                     
                     analysis = response.choices[0].message.content
@@ -86,7 +99,9 @@ with tab2:
                     st.session_state.user_profile["analyzed"] = True
                     
                     st.success("✅ Analysis Complete!")
+                    # Display the clean markdown
                     st.markdown(analysis)
+                    
                 except Exception as e:
                     st.error(f"Analysis failed: {e}")
 
@@ -95,7 +110,7 @@ with tab3:
     st.header("💼 AI-Powered Job Matching")
     
     if JSearchClient is None:
-        st.error("⚠️ Job matching module not loaded. Please check your code.")
+        st.error("⚠️ Job matching module not loaded.")
     elif "JSEARCH_API_KEY" not in st.secrets:
         st.error("⚠️ JSearch API key not configured.")
     else:
@@ -110,10 +125,9 @@ with tab3:
             date_filter = st.selectbox("Posted Within", ["all", "week", "month"], index=0)
             num_results = st.slider("Number of Results", 5, 20, 10)
         
-        if st.button(" Find Matching Jobs", type="primary", use_container_width=True):
+        if st.button("🔍 Find Matching Jobs", type="primary", use_container_width=True):
             with st.spinner("🔎 Searching..."):
                 try:
-                    # Use your CV skills if analyzed, otherwise empty
                     user_skills = []
                     if st.session_state.cv_text:
                         skills_keywords = ["Python", "JavaScript", "React", "Node.js", "Docker", "AWS", "Git", "Agile"]
@@ -121,7 +135,6 @@ with tab3:
                             if skill.lower() in st.session_state.cv_text.lower():
                                 user_skills.append(skill)
                     
-                    # Initialize client and search
                     client = JSearchClient(api_key=st.secrets["JSEARCH_API_KEY"])
                     results = client.search_jobs(
                         query=job_query,
@@ -132,15 +145,18 @@ with tab3:
                         user_skills=user_skills
                     )
                     
-                    # Display Results
                     if results.get("data") and len(results["data"]) > 0:
                         st.success(f"✅ Found {len(results['data'])} jobs!")
                         
                         for i, job in enumerate(results["data"]):
+                            # Safe check to ensure job is a dictionary
+                            if not isinstance(job, dict):
+                                continue
+
                             match_score = job.get("career_compass_match_score", 0)
                             
                             if match_score >= 0.7:
-                                badge = " Excellent Match"
+                                badge = "🟢 Excellent Match"
                             elif match_score >= 0.4:
                                 badge = "🟡 Good Match"
                             else:
@@ -166,5 +182,5 @@ with tab4:
     st.info("Coming soon!")
 
 with tab5:
-    st.header(" Cover Letter")
+    st.header("📧 Cover Letter")
     st.info("Coming soon!")
