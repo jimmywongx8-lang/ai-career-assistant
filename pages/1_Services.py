@@ -207,12 +207,43 @@ with tab3:
                             })
                         st.rerun()
                 
-                with st.expander("📋 View Details"):
-                    st.write(f"**Desc:** {desc}")
-                    if skills:
-                        st.write(f"**Skills:** {', '.join(skills[:5])}")
-                    if apply_url != "#":
-                        st.markdown(f"[🚀 Apply]({apply_url})")
+                # FIXED: View Details with Apply Button
+                with st.expander("📋 View Full Job Details"):
+                    # Full description
+                    st.markdown("**📝 Job Description**")
+                    full_desc = str(job.get("job_description", "No description available"))
+                    st.write(full_desc)
+                    
+                    # Skills
+                    if skills and len(skills) > 0:
+                        st.markdown("**💡 Required Skills**")
+                        skills_text = ", ".join(skills)
+                        st.write(skills_text)
+                    
+                    # Salary
+                    salary_info = job.get("normalized_salary", {})
+                    if salary_info and isinstance(salary_info, dict):
+                        min_sal = salary_info.get("min_annual_usd", 0)
+                        max_sal = salary_info.get("max_annual_usd", 0)
+                        if min_sal and max_sal:
+                            st.markdown("**💰 Salary Range**")
+                            st.write(f"${min_sal:,} - ${max_sal:,} per year")
+                    
+                    # Apply button
+                    if apply_url and apply_url != "#" and apply_url != "None":
+                        st.markdown("---")
+                        st.markdown(f"""
+                        <div style="text-align: center; margin: 20px 0;">
+                            <a href="{apply_url}" target="_blank" 
+                               style="background-color: #10b981; color: white; 
+                                      padding: 12px 30px; border-radius: 5px; 
+                                      text-decoration: none; font-weight: bold;
+                                      display: inline-block;">
+                                🚀 Apply Now
+                            </a>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
                 st.write("---")
 
 with tab4:
