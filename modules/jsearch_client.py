@@ -14,16 +14,12 @@ class JSearchClient:
     def search_jobs(self, query, location=None, employment_types=None, 
                    date_posted="all", num_pages=1, user_skills=None):
         
-        # ==========================================
-        # 1. ATTEMPT REAL API CALL
-        # ==========================================
+        # --- 1. TRY REAL API ---
         try:
-            # Build search query
             search_query = query.strip()
             if location:
                 search_query += f" in {location}"
             
-            # API Parameters
             params = {
                 "query": search_query,
                 "page": 1,
@@ -36,7 +32,6 @@ class JSearchClient:
             if employment_types:
                 params["employment_types"] = ",".join(employment_types)
 
-            # Make Request
             response = requests.get(
                 f"{self.BASE_URL}/search-v2",
                 headers=self.headers,
@@ -44,38 +39,24 @@ class JSearchClient:
                 timeout=10
             )
             
-            # Check for Success
             if response.status_code == 200:
                 data = response.json()
-                
-                # Verify API returned valid data
                 if data.get("status") == "OK" and data.get("data"):
                     processed_jobs = []
                     for job in data["data"]:
-                        # Clean and score each job
                         processed_jobs.append(self._clean_job(job, user_skills))
-                    
-                    print(f"✅ Real API Success: Found {len(processed_jobs)} jobs")
+                    print("✅ Real API Success")
                     return {"data": processed_jobs, "status": "OK"}
-                else:
-                    print("⚠️ API returned empty data or error status")
                     
         except Exception as e:
-            # Log error for debugging (visible in Streamlit logs)
             print(f"❌ Real API Failed: {e}")
             
-        # ==========================================
-        # 2. FALLBACK TO MOCK DATA
-        # (Ensures app never breaks during demos)
-        # ==========================================
+        # --- 2. FALLBACK TO MOCK ---
         print("🔄 Using Mock Data Fallback")
         mock_jobs = self._get_mock_jobs(user_skills)
         return {"data": mock_jobs, "status": "OK"}
 
     def _clean_job(self, job, user_skills):
-        """Parse raw API data into a clean format for the UI"""
-        
-        # Extract fields safely
         title = job.get("job_title", "Unknown Role")
         employer = job.get("employer_name", "Company")
         city = job.get("job_city", "")
@@ -84,7 +65,6 @@ class JSearchClient:
         apply_link = job.get("job_apply_link") or "#"
         skills = job.get("job_required_skills") or []
         
-        # Parse Salary Info
         salary_data = job.get("estimated_salaries") or []
         normalized_salary = None
         if salary_data:
@@ -98,7 +78,6 @@ class JSearchClient:
             except Exception:
                 pass
         
-        # Calculate Match Score
         match_score = self._calculate_match_score(title, desc, skills, user_skills)
         
         return {
@@ -114,21 +93,18 @@ class JSearchClient:
         }
 
     def _calculate_match_score(self, title, desc, job_skills, user_skills):
-        """Calculate how well the job matches the user's CV skills"""
         if not user_skills:
-            return 0.5  # Default score if no skills provided
+            return 0.5
             
         score = 0.0
         combined_text = (title + " " + desc).lower()
         job_skills_lower = [s.lower() for s in job_skills]
         user_skills_lower = [s.lower() for s in user_skills]
         
-        # 1. Skill Matching (60% weight)
         if job_skills_lower:
             matches = sum(1 for s in user_skills_lower if s in job_skills_lower)
             score += 0.6 * (matches / len(user_skills_lower))
             
-        # 2. Keyword Matching in Description (40% weight)
         keywords = [s.lower() for s in user_skills if len(s) > 3]
         if keywords:
             text_matches = sum(1 for k in keywords if k in combined_text)
@@ -137,7 +113,6 @@ class JSearchClient:
         return min(1.0, round(score, 2))
 
     def _get_mock_jobs(self, user_skills):
-        """Return demo jobs if API fails"""
         return [
             {
                 "job_title": "Senior Software Engineer",
