@@ -41,56 +41,71 @@ class JSearchClient:
             if response.status_code == 200:
                 data = response.json()
                 
-                if data.get("status") == "OK" and "data" in data:
-                    jobs_list = data["data"]
-                    processed_jobs = []
+                if data.get("status") == "OK":
+                    # Handle both API response structures
+                    jobs_list = []
                     
-                    for job in jobs_list:
-                        try:
-                            cleaned = self._clean_job(job, user_skills)
-                            processed_jobs.append(cleaned)
-                        except Exception as job_error:
-                            print(f"Skipping job: {job_error}")
-                            continue
+                    # New API structure: data["data"]["jobs"]
+                    if "data" in data and isinstance(data["data"], dict) and "jobs" in data["data"]:
+                        jobs_list = data["data"]["jobs"]
+                        print(f"✅ Using new API structure: {len(jobs_list)} jobs")
                     
-                    if processed_jobs:
-                        return {"data": processed_jobs, "status": "OK"}
+                    # Old API structure: data["data"] (list)
+                    elif "data" in data and isinstance(data["data"], list):
+                        jobs_list = data["data"]
+                        print(f"✅ Using old API structure: {len(jobs_list)} jobs")
+                    
+                    # Process jobs
+                    if jobs_list:
+                        processed_jobs = []
+                        for job in jobs_list:
+                            try:
+                                cleaned = self._clean_job(job, user_skills)
+                                processed_jobs.append(cleaned)
+                            except Exception as job_error:
+                                print(f"⚠️ Skipping job: {job_error}")
+                                continue
+                        
+                        if processed_jobs:
+                            return {"data": processed_jobs, "status": "OK"}
             
-            # If we get here, API failed or returned no jobs
-            print(f"API returned status: {data.get('status') if 'data' in locals() else 'N/A'}")
+            print(f"⚠️ API returned: {data.get('status', 'unknown')}")
                     
         except Exception as e:
-            print(f"API Exception: {e}")
+            print(f"❌ API Exception: {e}")
             
         # Fallback to mock data
-        print("Using mock data fallback")
+        print("🔄 Using mock data fallback")
         mock_jobs = self._get_mock_jobs(user_skills)
         return {"data": mock_jobs, "status": "OK"}
 
     def _clean_job(self, job, user_skills):
-        """Safely extract job fields with defaults"""
+        """Safely extract job fields from API response"""
         
-        # Extract basic info with safe defaults
+        # Extract basic info
         title = job.get("job_title", "Unknown Role")
         employer = job.get("employer_name", "Company")
         
-        # Handle location - API might have job_city/job_state or job_location
+        # Handle location
         city = job.get("job_city", "")
         state = job.get("job_state", "")
+        
+        # Try job_location if city/state not available
         if not city and not state:
-            # Try alternative field
             location_str = job.get("job_location", "")
-            if location_str:
-                parts = location_str.split(", ")
-                if len(parts) >= 2:
-                    city = parts[-2] if len(parts) > 2 else parts[0]
-                    state = parts[-1] if len(parts) > 1 else ""
+            if location_str and "," in location_str:
+                parts = location_str.split(",")
+                city = parts[0].strip()
+                if len(parts) > 1:
+                    state = parts[1].strip()
+            elif location_str:
+                city = location_str
         
         desc = job.get("job_description", "")
         apply_link = job.get("job_apply_link") or "#"
         skills = job.get("job_required_skills") or []
         
-        # Handle salary - different structure in real API
+        # Handle salary
         salary_data = job.get("estimated_salaries") or []
         normalized_salary = None
         
