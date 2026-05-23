@@ -2,6 +2,7 @@
 import streamlit as st
 import sys
 from pathlib import Path
+import json
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -43,13 +44,6 @@ st.markdown("""
     .excellent { background-color: #10b981; }
     .good { background-color: #f59e0b; }
     .potential { background-color: #6b7280; }
-    .salary-tag {
-        background-color: rgba(255,255,255,0.2);
-        padding: 5px 10px;
-        border-radius: 5px;
-        margin: 5px;
-        display: inline-block;
-    }
     .skill-tag {
         background-color: rgba(255,255,255,0.3);
         padding: 3px 8px;
@@ -58,19 +52,29 @@ st.markdown("""
         margin: 2px;
         display: inline-block;
     }
-    .apply-button {
-        background-color: #ffffff;
-        color: #667eea;
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        display: inline-block;
-        margin-top: 10px;
-    }
     .location-tag {
         opacity: 0.8;
         font-size: 14px;
+    }
+    .saved-job-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        color: white;
+    }
+    .save-btn {
+        background-color: rgba(255,255,255,0.9);
+        color: #667eea;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .saved-btn {
+        background-color: #10b981;
+        color: white;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -78,12 +82,55 @@ st.markdown("""
 st.title("🧭 Career Compass")
 st.markdown("### AI-powered tools to accelerate your career journey")
 
+# Initialize session state for saved jobs
 if "user_profile" not in st.session_state:
     st.session_state.user_profile = {}
 if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 if "saved_jobs" not in st.session_state:
     st.session_state.saved_jobs = []
+
+# Sidebar - Show saved jobs
+with st.sidebar:
+    st.header("💼 Saved Jobs")
+    if len(st.session_state.saved_jobs) == 0:
+        st.info("No saved jobs yet. Click the bookmark icon on jobs you're interested in!")
+    else:
+        st.success(f"✅ {len(st.session_state.saved_jobs)} job(s) saved")
+        
+        for i, job in enumerate(st.session_state.saved_jobs):
+            with st.expander(f"💾 {job.get('job_title', 'Job')[:30]}..."):
+                st.write(f"**🏢 {job.get('employer_name', 'Unknown')}**")
+                st.write(f"📍 {job.get('job_city', '')} {job.get('job_state', '')}")
+                
+                match_score = job.get("career_compass_match_score", 0)
+                if match_score >= 0.7:
+                    st.write("🟢 Excellent Match")
+                elif match_score >= 0.4:
+                    st.write("🟡 Good Match")
+                else:
+                    st.write("⚪ Potential Fit")
+                
+                # Remove button
+                if st.button("🗑️ Remove", key=f"remove_{i}"):
+                    st.session_state.saved_jobs.pop(i)
+                    st.rerun()
+        
+        # Download saved jobs
+        if len(st.session_state.saved_jobs) > 0:
+            jobs_json = json.dumps(st.session_state.saved_jobs, indent=2)
+            st.download_button(
+                label="📥 Download Saved Jobs",
+                data=jobs_json,
+                file_name="saved_jobs.json",
+                mime="application/json",
+                use_container_width=True
+            )
+        
+        # Clear all button
+        if st.button("🗑️ Clear All Saved Jobs", use_container_width=True):
+            st.session_state.saved_jobs = []
+            st.rerun()
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📄 CV Upload", 
@@ -230,6 +277,14 @@ with tab3:
 
                             match_score = job.get("career_compass_match_score", 0)
                             
+                            # Check if job is already saved
+                            job_id = job.get("job_title", "") + job.get("employer_name", "")
+                            is_saved = any(
+                                saved.get("job_title", "") == job.get("job_title", "") and 
+                                saved.get("employer_name", "") == job.get("employer_name", "")
+                                for saved in st.session_state.saved_jobs
+                            )
+                            
                             # Determine badge class
                             if match_score >= 0.7:
                                 badge_class = "excellent"
@@ -241,15 +296,50 @@ with tab3:
                                 badge_class = "potential"
                                 badge_text = "⚪ Potential Fit"
                             
+                            # Save/Unsave button logic
+                            save_key = f"save_{i}_{job_id}"
+                            
                             # Job card
                             st.markdown(f"""
                             <div class="job-card">
-                                <div class="job-title">{job.get('job_title', 'N/A')}</div>
-                                <div class="employer">🏢 {job.get('employer_name', 'Unknown')}</div>
-                                <div class="location-tag">📍 {job.get('job_city', '')} {job.get('job_state', '')}</div>
-                                <div class="match-badge {badge_class}">{badge_text} ({match_score*100:.0f}%)</div>
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div class="job-title">{job.get('job_title', 'N/A')}</div>
+                                        <div class="employer">🏢 {job.get('employer_name', 'Unknown')}</div>
+                                        <div class="location-tag">📍 {job.get('job_city', '')} {job.get('job_state', '')}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div class="match-badge {badge_class}">{badge_text}</div>
+                                    </div>
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
+                            
+                            # Save button row
+                            col1, col2 = st.columns([3, 1])
+                            with col1:
+                                if is_saved:
+                                    st.success("💾 Saved to your jobs list")
+                                else:
+                                    st.info("Click bookmark to save this job")
+                            
+                            with col2:
+                                save_label = "💾 Saved" if is_saved else "🔖 Save Job"
+                                save_type = "secondary" if is_saved else "primary"
+                                if st.button(save_label, key=save_key, type=save_type, use_container_width=True):
+                                    if is_saved:
+                                        # Remove from saved jobs
+                                        st.session_state.saved_jobs = [
+                                            j for j in st.session_state.saved_jobs
+                                            if not (j.get("job_title", "") == job.get("job_title", "") and 
+                                                    j.get("employer_name", "") == job.get("employer_name", ""))
+                                        ]
+                                        st.info("Job removed from saved list")
+                                    else:
+                                        # Add to saved jobs
+                                        st.session_state.saved_jobs.append(job)
+                                        st.success("Job saved! Check the sidebar 👈")
+                                    st.rerun()
                             
                             # Job details in expander
                             with st.expander("📋 View Job Details"):
