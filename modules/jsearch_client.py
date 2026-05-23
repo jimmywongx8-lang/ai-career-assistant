@@ -14,7 +14,9 @@ class JSearchClient:
     def search_jobs(self, query, location=None, employment_types=None, 
                    date_posted="all", num_pages=1, user_skills=None):
         
-        # --- 1. TRY REAL API ---
+        # Show API attempt in UI
+        st.info(f"🔄 Attempting real API call for: {query}")
+        
         try:
             search_query = query.strip()
             if location:
@@ -23,7 +25,7 @@ class JSearchClient:
             params = {
                 "query": search_query,
                 "page": 1,
-                "num_pages": num_pages
+                "num_pages": str(num_pages)  # Ensure string
             }
             
             if date_posted != "all":
@@ -32,27 +34,44 @@ class JSearchClient:
             if employment_types:
                 params["employment_types"] = ",".join(employment_types)
 
+            st.write(f"**Request URL:** {self.BASE_URL}/search-v2")
+            st.write(f"**Params:** {params}")
+
             response = requests.get(
                 f"{self.BASE_URL}/search-v2",
                 headers=self.headers,
                 params=params,
-                timeout=10
+                timeout=15
             )
+            
+            st.write(f"**HTTP Status:** {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
+                st.write(f"**API Status:** {data.get('status')}")
+                st.write(f"**Jobs Found:** {len(data.get('data', []))}")
+                
                 if data.get("status") == "OK" and data.get("data"):
                     processed_jobs = []
                     for job in data["data"]:
                         processed_jobs.append(self._clean_job(job, user_skills))
-                    print("✅ Real API Success")
+                    
+                    st.success(f"✅ Real API Success: {len(processed_jobs)} jobs")
                     return {"data": processed_jobs, "status": "OK"}
+                else:
+                    st.warning(f"⚠️ API returned no data: {data.get('message')}")
+            elif response.status_code == 401:
+                st.error("❌ 401 Unauthorized - Invalid API Key")
+            elif response.status_code == 429:
+                st.error("❌ 429 Rate Limit Exceeded")
+            else:
+                st.error(f"❌ HTTP {response.status_code}: {response.text[:200]}")
                     
         except Exception as e:
-            print(f"❌ Real API Failed: {e}")
+            st.error(f"❌ Exception: {e}")
             
-        # --- 2. FALLBACK TO MOCK ---
-        print("🔄 Using Mock Data Fallback")
+        # Fallback
+        st.warning("🔄 Using mock data fallback")
         mock_jobs = self._get_mock_jobs(user_skills)
         return {"data": mock_jobs, "status": "OK"}
 
