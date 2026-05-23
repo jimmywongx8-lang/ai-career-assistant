@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import json
 import hashlib
+import pandas as pd
 
 # Add project root to path so we can import modules
 sys.path.append(str(Path(__file__).parent.parent))
@@ -44,18 +45,66 @@ if "search_results" not in st.session_state:
 if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 
-# Sidebar for Saved Jobs
+# Sidebar for Saved Jobs & Export
 with st.sidebar:
     st.header("💼 Saved Jobs")
+    
     if st.session_state.saved_jobs:
-        st.success(f"✅ {len(st.session_state.saved_jobs)} saved")
+        st.success(f"✅ {len(st.session_state.saved_jobs)} jobs saved")
+        
+        # List saved jobs
         for i, job in enumerate(st.session_state.saved_jobs):
-            st.write(f"**{i+1}.** {job.get('job_title', 'Job')}")
-        if st.button("🗑️ Clear All"):
+            title = job.get('job_title', 'Unknown')[:35]
+            with st.expander(f"**{i+1}.** {title}..."):
+                st.write(f"🏢 {job.get('employer_name', 'N/A')}")
+                st.write(f"📍 {job.get('job_city', '')} {job.get('job_state', '')}")
+                score = job.get('career_compass_match_score', 0)
+                if score >= 0.7: st.write("🟢 Excellent Match")
+                elif score >= 0.4: st.write("🟡 Good Match")
+                else: st.write("⚪ Potential Fit")
+                
+                # Remove individual job
+                if st.button(f"🗑️ Remove", key=f"remove_{i}"):
+                    st.session_state.saved_jobs.pop(i)
+                    st.rerun()
+        
+        st.divider()
+        
+        # EXPORT SECTION - CSV ONLY
+        st.subheader("📤 Export Jobs")
+        st.markdown("Download your saved jobs to Excel")
+        
+        # Prepare data for export
+        export_data = []
+        for job in st.session_state.saved_jobs:
+            export_data.append({
+                "Title": job.get("job_title", ""),
+                "Company": job.get("employer_name", ""),
+                "Location": f"{job.get('job_city', '')} {job.get('job_state', '')}".strip(),
+                "Match Score": f"{job.get('career_compass_match_score', 0) * 100:.0f}%",
+                "Skills": ", ".join(job.get("job_required_skills", [])[:5]),
+                "Apply Link": job.get("job_apply_link", "#")
+            })
+        
+        # Create CSV
+        df = pd.DataFrame(export_data)
+        csv = df.to_csv(index=False)
+        
+        st.download_button(
+            label="📥 Download as Excel/CSV",
+            data=csv,
+            file_name="my_saved_jobs.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+        
+        # Clear All
+        if st.button("🗑️ Clear All Saved", use_container_width=True, type="secondary"):
             st.session_state.saved_jobs = []
             st.rerun()
+            
     else:
-        st.info("No saved jobs")
+        st.info("No saved jobs yet. Click 'Save' on jobs you like!")
 
 # Main Tabs
 tab1, tab2, tab3 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼 Jobs"])
