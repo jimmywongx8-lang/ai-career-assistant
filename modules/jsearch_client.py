@@ -1,21 +1,143 @@
 import requests
 import streamlit as st
-from datetime import datetime
 
 class JSearchClient:
     BASE_URL = "https://jsearch.p.rapidapi.com"
 
     def __init__(self, api_key):
-        if not api_key:
-            raise ValueError("JSearch API key is required")
-        self.api_key = api_key.strip()
+        self.api_key = api_key
         self.headers = {
-            "X-RapidAPI-Key": self.api_key,
+            "X-RapidAPI-Key": api_key,
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
 
-    def _get_mock_jobs(_self):
-        """Return demo jobs for testing - NO STREAMLIT OBJECTS"""
+    def search_jobs(self, query, location=None, employment_types=None, 
+                   date_posted="all", num_pages=1, user_skills=None):
+        
+        # ==========================================
+        # 1. ATTEMPT REAL API CALL
+        # ==========================================
+        try:
+            # Build search query
+            search_query = query.strip()
+            if location:
+                search_query += f" in {location}"
+            
+            # API Parameters
+            params = {
+                "query": search_query,
+                "page": 1,
+                "num_pages": num_pages
+            }
+            
+            if date_posted != "all":
+                params["date_posted"] = date_posted
+            
+            if employment_types:
+                params["employment_types"] = ",".join(employment_types)
+
+            # Make Request
+            response = requests.get(
+                f"{self.BASE_URL}/search-v2",
+                headers=self.headers,
+                params=params,
+                timeout=10
+            )
+            
+            # Check for Success
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Verify API returned valid data
+                if data.get("status") == "OK" and data.get("data"):
+                    processed_jobs = []
+                    for job in data["data"]:
+                        # Clean and score each job
+                        processed_jobs.append(self._clean_job(job, user_skills))
+                    
+                    print(f"✅ Real API Success: Found {len(processed_jobs)} jobs")
+                    return {"data": processed_jobs, "status": "OK"}
+                else:
+                    print("⚠️ API returned empty data or error status")
+                    
+        except Exception as e:
+            # Log error for debugging (visible in Streamlit logs)
+            print(f"❌ Real API Failed: {e}")
+            
+        # ==========================================
+        # 2. FALLBACK TO MOCK DATA
+        # (Ensures app never breaks during demos)
+        # ==========================================
+        print("🔄 Using Mock Data Fallback")
+        mock_jobs = self._get_mock_jobs(user_skills)
+        return {"data": mock_jobs, "status": "OK"}
+
+    def _clean_job(self, job, user_skills):
+        """Parse raw API data into a clean format for the UI"""
+        
+        # Extract fields safely
+        title = job.get("job_title", "Unknown Role")
+        employer = job.get("employer_name", "Company")
+        city = job.get("job_city", "")
+        state = job.get("job_state", "")
+        desc = job.get("job_description", "")
+        apply_link = job.get("job_apply_link") or "#"
+        skills = job.get("job_required_skills") or []
+        
+        # Parse Salary Info
+        salary_data = job.get("estimated_salaries") or []
+        normalized_salary = None
+        if salary_data:
+            try:
+                first_salary = salary_data[0]
+                normalized_salary = {
+                    "min_annual_usd": first_salary.get("min"),
+                    "max_annual_usd": first_salary.get("max"),
+                    "currency": first_salary.get("currency", "USD")
+                }
+            except Exception:
+                pass
+        
+        # Calculate Match Score
+        match_score = self._calculate_match_score(title, desc, skills, user_skills)
+        
+        return {
+            "job_title": title,
+            "employer_name": employer,
+            "job_city": city,
+            "job_state": state,
+            "job_description": desc,
+            "job_required_skills": skills,
+            "job_apply_link": apply_link,
+            "normalized_salary": normalized_salary,
+            "career_compass_match_score": match_score
+        }
+
+    def _calculate_match_score(self, title, desc, job_skills, user_skills):
+        """Calculate how well the job matches the user's CV skills"""
+        if not user_skills:
+            return 0.5  # Default score if no skills provided
+            
+        score = 0.0
+        combined_text = (title + " " + desc).lower()
+        job_skills_lower = [s.lower() for s in job_skills]
+        user_skills_lower = [s.lower() for s in user_skills]
+        
+        # 1. Skill Matching (60% weight)
+        if job_skills_lower:
+            matches = sum(1 for s in user_skills_lower if s in job_skills_lower)
+            score += 0.6 * (matches / len(user_skills_lower))
+            
+        # 2. Keyword Matching in Description (40% weight)
+        keywords = [s.lower() for s in user_skills if len(s) > 3]
+        if keywords:
+            text_matches = sum(1 for k in keywords if k in combined_text)
+            score += 0.4 * (text_matches / len(keywords))
+            
+        return min(1.0, round(score, 2))
+
+    def _get_mock_jobs(self, user_skills):
+        """Return demo jobs if API fails"""
         return [
             {
                 "job_title": "Senior Software Engineer",
@@ -48,71 +170,3 @@ class JSearchClient:
                 "estimated_salaries": [{"min": 160000, "max": 200000, "currency": "USD", "period": "YEAR"}]
             }
         ]
-
-    @st.cache_data(ttl=1800, show_spinner="Searching for jobs...")
-    def search_jobs(_self, query, location=None, employment_types=None, 
-                   date_posted="all", num_pages=1, country="us", user_skills=None):
-        
-        # ALWAYS use mock jobs to avoid API issues
-        jobs = _self._get_mock_jobs()
-        
-        # Process jobs
-        processed_jobs = []
-        for job in jobs:
-            try:
-                job["career_compass_match_score"] = _self._calculate_match_score(job, query, user_skills)
-                job["fetched_at"] = datetime.now().isoformat()
-                job["normalized_salary"] = _self._normalize_salary(job.get("estimated_salaries"))
-                processed_jobs.append(job)
-            except Exception as e:
-                continue
-        
-        return {"data": processed_jobs, "status": "OK"}
-    
-    def _calculate_match_score(_self, job, query, user_skills=None):
-        if not isinstance(job, dict):
-            return 0.0
-        
-        score = 0.0
-        job_text = (str(job.get("job_title", "")).lower() + " " + 
-                   str(job.get("job_description", "")).lower())
-        
-        query_terms = [t.strip().lower() for t in query.split() if len(t) > 3]
-        if query_terms:
-            matches = sum(1 for term in query_terms if term in job_text)
-            score += 0.4 * (matches / len(query_terms))
-        
-        if user_skills and job.get("job_required_skills"):
-            job_skills = [str(s).lower() for s in job["job_required_skills"]]
-            skill_matches = sum(1 for skill in user_skills 
-                              if any(skill.lower() in js for js in job_skills))
-            score += 0.5 * min(1.0, skill_matches / max(1, len(user_skills)))
-        
-        return round(min(1.0, score), 2)
-    
-    def _normalize_salary(_self, salary_data):
-        if not salary_data or not isinstance(salary_data, list):
-            return None
-        
-        try:
-            salary = salary_data[0]
-            if not isinstance(salary, dict):
-                return None
-            
-            min_sal = salary.get("min", 0)
-            max_sal = salary.get("max", 0)
-            period = salary.get("period", "YEAR").upper()
-            
-            if period == "HOUR":
-                min_sal *= 2080
-                max_sal *= 2080
-            elif period == "MONTH":
-                min_sal *= 12
-                max_sal *= 12
-            
-            return {
-                "min_annual_usd": int(min_sal) if min_sal else None,
-                "max_annual_usd": int(max_sal) if max_sal else None
-            }
-        except Exception:
-            return None
