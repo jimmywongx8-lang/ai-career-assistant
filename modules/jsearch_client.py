@@ -9,9 +9,9 @@ class JSearchClient:
     def __init__(self, api_key):
         if not api_key:
             raise ValueError("JSearch API key is required")
-        self.api_key = api_key
+        self.api_key = api_key.strip()  # Remove any whitespace
         self.headers = {
-            "X-RapidAPI-Key": api_key,
+            "X-RapidAPI-Key": self.api_key,
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
 
@@ -28,7 +28,7 @@ class JSearchClient:
         
         params = {
             "query": search_query,
-            "num_pages": min(num_pages, 10),
+            "num_pages": str(min(num_pages, 10)),  # Ensure it's a string
             "country": country,
             "date_posted": date_posted
         }
@@ -38,50 +38,58 @@ class JSearchClient:
         
         try:
             response = requests.get(
-                _self.BASE_URL + "/search-v2",
+                f"{_self.BASE_URL}/search-v2",
                 headers=_self.headers,
                 params=params,
                 timeout=60
             )
             
-            if response.status_code != 200:
+            # Log the actual request details for debugging
+            st.write(f"**Request URL:** {response.url}")
+            st.write(f"**Status Code:** {response.status_code}")
+            
+            if response.status_code == 401:
+                st.error("❌ API Error 401: Invalid API Key")
+                st.error("Please check your JSEARCH_API_KEY in Streamlit secrets")
+                return {"data": [], "status": "error", "message": "Invalid API key"}
+            elif response.status_code == 403:
+                st.error("❌ API Error 403: Access Forbidden")
+                st.error("Check if you're subscribed to the JSearch API on RapidAPI")
+                return {"data": [], "status": "error", "message": "Forbidden"}
+            elif response.status_code == 429:
+                st.error("❌ API Error 429: Rate Limit Exceeded")
+                return {"data": [], "status": "error", "message": "Rate limit"}
+            elif response.status_code != 200:
                 st.error(f"❌ API HTTP Error {response.status_code}")
+                st.write(f"Response: {response.text[:500]}")
                 return {"data": [], "status": "error", "message": f"HTTP {response.status_code}"}
             
             try:
                 data = response.json()
             except Exception as e:
                 st.error(f"❌ Failed to parse JSON: {e}")
+                st.write(f"Raw response: {response.text[:500]}")
                 return {"data": [], "status": "error", "message": "Invalid JSON"}
             
-            # Get the data field
-            raw_data = data.get("data")
+            # Check if we got an error in the response
+            if data.get("status") == "error":
+                st.error(f"❌ API Error: {data.get('message', 'Unknown error')}")
+                return {"data": [], "status": "error", "message": data.get("message")}
             
-            # Handle case where data is a JSON string that needs parsing
-            if isinstance(raw_data, str):
-                try:
-                    st.info("📝 Data field is a string, parsing...")
-                    raw_data = json.loads(raw_data)
-                except json.JSONDecodeError as e:
-                    st.error(f"❌ Failed to parse data field as JSON: {e}")
-                    st.write("Raw data string:", raw_data[:500])
-                    return {"data": [], "status": "error", "message": "Invalid data JSON"}
+            jobs_list = data.get("data", [])
             
-            if not isinstance(raw_data, list):
-                st.error(f"❌ Data field is not a list! Type: {type(raw_data).__name__}")
+            if not isinstance(jobs_list, list):
+                st.error(f"❌ Data is not a list! Type: {type(jobs_list).__name__}")
                 return {"data": [], "status": "error", "message": "Invalid data format"}
             
-            jobs_list = raw_data
-            
             if not jobs_list:
-                st.warning("ℹ️ No jobs found")
+                st.warning("ℹ️ No jobs found for this search")
                 return {"data": [], "status": "ok", "message": "No jobs found"}
             
             # Process jobs
             processed_jobs = []
             for i, job in enumerate(jobs_list):
                 if not isinstance(job, dict):
-                    st.warning(f"⚠️ Job {i} is not a dict. Type: {type(job).__name__}")
                     continue
                 
                 try:
@@ -98,11 +106,10 @@ class JSearchClient:
             processed_jobs.sort(key=lambda x: x.get("career_compass_match_score", 0), reverse=True)
             data["data"] = processed_jobs
             
-            st.success(f"✅ Found {len(processed_jobs)} jobs!")
             return data
             
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"❌ Request failed: {e}")
             return {"data": [], "status": "error", "message": str(e)}
     
     def _calculate_match_score(_self, job, query, user_skills=None):
