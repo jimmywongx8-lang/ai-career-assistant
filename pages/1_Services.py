@@ -5,7 +5,6 @@ import json
 import hashlib
 import pandas as pd
 
-# Add project root to path so we can import modules
 sys.path.append(str(Path(__file__).parent.parent))
 
 try:
@@ -15,7 +14,6 @@ except ImportError:
 
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-# Simple CSS for styling
 st.markdown("""
 <style>
     .job-card {
@@ -37,7 +35,6 @@ st.markdown("""
 
 st.title("🧭 Career Compass")
 
-# Initialize Session State
 if "saved_jobs" not in st.session_state:
     st.session_state.saved_jobs = []
 if "search_results" not in st.session_state:
@@ -45,14 +42,12 @@ if "search_results" not in st.session_state:
 if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 
-# Sidebar for Saved Jobs & Export
 with st.sidebar:
     st.header("💼 Saved Jobs")
     
     if st.session_state.saved_jobs:
         st.success(f"✅ {len(st.session_state.saved_jobs)} jobs saved")
         
-        # List saved jobs
         for i, job in enumerate(st.session_state.saved_jobs):
             title = job.get('job_title', 'Unknown')[:35]
             with st.expander(f"**{i+1}.** {title}..."):
@@ -63,18 +58,15 @@ with st.sidebar:
                 elif score >= 0.4: st.write("🟡 Good Match")
                 else: st.write("⚪ Potential Fit")
                 
-                # Remove individual job
                 if st.button(f"🗑️ Remove", key=f"remove_job_{i}"):
                     st.session_state.saved_jobs.pop(i)
                     st.rerun()
         
         st.divider()
         
-        # EXPORT SECTION
         st.subheader("📤 Export Jobs")
         st.markdown("Download your saved jobs to Excel")
         
-        # Prepare data for export
         export_data = []
         for job in st.session_state.saved_jobs:
             export_data.append({
@@ -86,7 +78,6 @@ with st.sidebar:
                 "Apply Link": job.get("job_apply_link", "#")
             })
         
-        # Create CSV
         df = pd.DataFrame(export_data)
         csv = df.to_csv(index=False)
         
@@ -98,18 +89,15 @@ with st.sidebar:
             use_container_width=True
         )
         
-        # Clear All
-        if st.button("🗑️ Clear All Saved", use_container_width=True, key="clear_all_btn", type="secondary"):
+        if st.button("🗑️ Clear All Saved", key="clear_all_btn", type="secondary", use_container_width=True):
             st.session_state.saved_jobs = []
             st.rerun()
             
     else:
         st.info("No saved jobs yet. Click 'Save' on jobs you like!")
 
-# Main Tabs - ALL 5 TABS
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼 Jobs", "✍️ CV Rewrite", "📧 Cover Letter"])
 
-# ==================== TAB 1: CV UPLOAD ====================
 with tab1:
     st.header("Upload Your CV")
     st.markdown("Upload your CV to get started with AI-powered career tools")
@@ -127,7 +115,6 @@ with tab1:
         except Exception as e:
             st.error(f"Error: {e}")
 
-# ==================== TAB 2: AI ANALYSIS ====================
 with tab2:
     st.header("AI Profile Analysis")
     st.markdown("Get AI-powered insights about your CV")
@@ -157,7 +144,6 @@ with tab2:
             except Exception as e:
                 st.error(f"Analysis failed: {e}")
 
-# ==================== TAB 3: JOB MATCHING ====================
 with tab3:
     st.header("AI-Powered Job Matching")
     st.markdown("Find jobs that match your skills and experience")
@@ -185,10 +171,11 @@ with tab3:
                 title = str(job.get("job_title", "Job"))
                 company = str(job.get("employer_name", "Company"))
                 city = str(job.get("job_city", ""))
-                desc = str(job.get("job_description", ""))[:200]
+                desc = str(job.get("job_description", ""))
                 skills = job.get("job_required_skills", [])
                 apply_url = str(job.get("job_apply_link", "#"))
                 score = float(job.get("career_compass_match_score", 0))
+                salary = job.get("normalized_salary", {})
                 
                 if score >= 0.7: badge = "🟢 Excellent"
                 elif score >= 0.4: badge = "🟡 Good"
@@ -223,26 +210,44 @@ with tab3:
                                 if not (str(j.get("job_title")) == title and str(j.get("employer_name")) == company)
                             ]
                         else:
-                            st.session_state.saved_jobs.append({
-                                "job_title": title,
-                                "employer_name": company,
-                                "job_city": city,
-                                "job_description": desc,
-                                "job_required_skills": skills,
-                                "job_apply_link": apply_url,
-                                "career_compass_match_score": score
-                            })
+                            st.session_state.saved_jobs.append(job.copy())
                         st.rerun()
                 
-                st.write(f"**Description:** {desc}...")
-                if skills:
-                    st.write(f"**Skills:** {', '.join(str(s) for s in skills[:5])}")
-                if apply_url != "#":
-                    st.markdown(f"[🚀 Apply]({apply_url})")
+                # VIEW DETAILS EXPANDER
+                with st.expander("📋 View Full Job Details"):
+                    col_a, col_b = st.columns(2)
+                    
+                    with col_a:
+                        st.markdown("**📝 Full Description**")
+                        st.write(desc if desc else "No description available")
+                    
+                    with col_b:
+                        if skills:
+                            st.markdown("**💡 Required Skills**")
+                            skills_str = ", ".join(str(s) for s in skills)
+                            st.write(skills_str)
+                        
+                        if salary and salary.get("min_annual_usd"):
+                            st.markdown("**💰 Salary Range**")
+                            min_sal = salary.get("min_annual_usd", 0)
+                            max_sal = salary.get("max_annual_usd", 0)
+                            st.info(f"${min_sal:,} - ${max_sal:,} / year")
+                    
+                    if apply_url and apply_url != "#":
+                        st.markdown(f"""
+                        <div style="text-align: center; margin-top: 20px;">
+                            <a href="{apply_url}" target="_blank" 
+                               style="background-color: #667eea; color: white; 
+                                      padding: 12px 30px; border-radius: 5px; 
+                                      text-decoration: none; font-weight: bold;
+                                      display: inline-block;">
+                                🚀 Apply Now
+                            </a>
+                        </div>
+                        """, unsafe_allow_html=True)
                 
                 st.markdown("---")
 
-# ==================== TAB 4: CV REWRITING ====================
 with tab4:
     st.header("✍️ AI CV Rewriting")
     st.markdown("Optimize your CV for specific job descriptions")
@@ -250,16 +255,55 @@ with tab4:
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
     else:
-        job_desc = st.text_area(
-            "Paste the Job Description",
-            height=150,
-            placeholder="Paste the job description you want to optimize your CV for...",
-            key="cv_rewrite_job_desc"
+        # Option to select from saved jobs or paste manually
+        rewrite_option = st.radio(
+            "Choose how to provide job description:",
+            ["📋 Select from my saved jobs", "✍️ Paste job description manually"],
+            key="rewrite_option_select"
         )
+        
+        job_desc = ""
+        selected_job_title = None
+        
+        if rewrite_option == "📋 Select from my saved jobs":
+            if st.session_state.saved_jobs:
+                job_options = [f"{job.get('job_title', 'Job')} at {job.get('employer_name', 'Company')}" 
+                              for job in st.session_state.saved_jobs]
+                selected_job = st.selectbox(
+                    "Select a job to optimize your CV for:",
+                    job_options,
+                    key="saved_job_selector"
+                )
+                
+                # Get the full job description
+                selected_idx = job_options.index(selected_job)
+                selected_job_data = st.session_state.saved_jobs[selected_idx]
+                job_desc = selected_job_data.get("job_description", "")
+                selected_job_title = selected_job
+                
+                if job_desc:
+                    st.info(f"📄 Using job description from **{selected_job}**")
+                    with st.expander("👀 Preview job description"):
+                        st.write(job_desc[:500] + "..." if len(job_desc) > 500 else job_desc)
+            else:
+                st.warning("You haven't saved any jobs yet. Please save jobs from the Jobs tab first.")
+                job_desc = st.text_area(
+                    "Or paste the job description here:",
+                    height=150,
+                    placeholder="Paste the job description...",
+                    key="cv_rewrite_manual_fallback"
+                )
+        else:
+            job_desc = st.text_area(
+                "Paste the Job Description",
+                height=150,
+                placeholder="Paste the job description you want to optimize your CV for...",
+                key="cv_rewrite_job_desc_manual"
+            )
         
         if st.button("✨ Rewrite My CV", key="btn_rewrite_cv", type="primary", use_container_width=True):
             if not job_desc:
-                st.warning("Please enter a job description")
+                st.warning("Please enter or select a job description")
             else:
                 with st.spinner("🤖 Optimizing your CV..."):
                     try:
@@ -293,7 +337,6 @@ with tab4:
                     except Exception as e:
                         st.error(f"Rewriting failed: {e}")
 
-# ==================== TAB 5: COVER LETTER ====================
 with tab5:
     st.header("📧 AI Cover Letter Generator")
     st.markdown("Generate personalized cover letters in seconds")
