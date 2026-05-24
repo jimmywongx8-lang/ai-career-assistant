@@ -762,7 +762,7 @@ with tab5:
                         st.session_state.is_processing = False
 
 # ==========================================
-# PROFESSIONAL FOOTER (FIXED)
+# PROFESSIONAL FOOTER (NO LINKS)
 # ==========================================
 st.markdown("""
 <div class="footer">
