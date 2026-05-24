@@ -146,14 +146,6 @@ st.markdown("""
     .footer-col li {
         margin-bottom: 10px;
     }
-    .footer-col a {
-        color: #64748B;
-        text-decoration: none;
-        transition: color 0.2s;
-    }
-    .footer-col a:hover {
-        color: #4F46E5;
-    }
     .footer-bottom {
         text-align: center;
         margin-top: 40px;
@@ -770,7 +762,7 @@ with tab5:
                         st.session_state.is_processing = False
 
 # ==========================================
-# PROFESSIONAL FOOTER (UPDATED)
+# PROFESSIONAL FOOTER (FIXED)
 # ==========================================
 st.markdown("""
 <div class="footer">
@@ -782,23 +774,23 @@ st.markdown("""
         <div class="footer-col">
             <h4>Services</h4>
             <ul>
-                <li><a href="/About">Our Services</a></li>
-                <li><a href="/About">Job Matching</a></li>
-                <li><a href="/About">CV Analysis</a></li>
-                <li><a href="/About">Cover Letters</a></li>
+                <li>Our Services</li>
+                <li>Job Matching</li>
+                <li>CV Analysis</li>
+                <li>Cover Letters</li>
             </ul>
         </div>
         <div class="footer-col">
             <h4>Legal</h4>
             <ul>
-                <li><a href="/Privacy">Privacy Policy</a></li>
-                <li><a href="/Terms">Terms of Service</a></li>
+                <li>Privacy Policy</li>
+                <li>Terms of Service</li>
             </ul>
         </div>
         <div class="footer-col">
             <h4>Connect</h4>
             <ul>
-                <li><a href="/Contact">Contact Us</a></li>
+                <li>Contact Us</li>
             </ul>
         </div>
     </div>
