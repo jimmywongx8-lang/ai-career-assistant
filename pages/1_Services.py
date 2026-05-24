@@ -73,7 +73,20 @@ st.markdown("""
     .divider { height: 1px; background-color: #E2E8F0; margin: 20px 0; }
     .text-muted { color: #64748B; font-size: 0.875rem; }
     
-    /* Loading Animation */
+    .info-box { 
+        background-color: #EFF6FF; border-left: 4px solid #3B82F6; 
+        padding: 16px 20px; border-radius: 8px; margin: 16px 0; 
+    }
+    .info-box-title { font-weight: 600; color: #1E40AF; margin-bottom: 8px; }
+    .info-box-text { color: #1E40AF; line-height: 1.6; }
+    
+    .steps-box { 
+        background-color: #F0FDF4; border-left: 4px solid #10B981; 
+        padding: 16px 20px; border-radius: 8px; margin: 16px 0; 
+    }
+    .steps-box-title { font-weight: 600; color: #065F46; margin-bottom: 8px; }
+    .steps-box-text { color: #065F46; line-height: 1.6; }
+    
     @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
@@ -144,7 +157,35 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼
 # TAB 1: CV UPLOAD
 with tab1:
     st.header("Upload Your CV")
-    st.markdown('<p class="text-muted">Upload your CV to get started with AI-powered career tools</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+        <div class="info-box-title">📋 What This Does</div>
+        <div class="info-box-text">
+            Upload your current CV/resume to unlock all AI-powered features. Your CV will be analyzed to:
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li>Identify your key skills and experience</li>
+                <li>Match you with relevant job opportunities</li>
+                <li>Generate personalized career insights</li>
+                <li>Optimize your CV for specific roles</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="steps-box">
+        <div class="steps-box-title">✅ How to Use</div>
+        <div class="steps-box-text">
+            <strong>Step 1:</strong> Click "Choose file" above<br>
+            <strong>Step 2:</strong> Select your CV file (PDF or TXT format)<br>
+            <strong>Step 3:</strong> Wait for the upload to complete<br>
+            <strong>Step 4:</strong> Navigate to other tabs to use AI features
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<p class="text-muted">Supported formats: PDF, TXT (Max file size: 10MB)</p>', unsafe_allow_html=True)
     
     uploaded = st.file_uploader("Choose file", type=["txt", "pdf"], key="cv_up")
     if uploaded:
@@ -175,13 +216,40 @@ with tab1:
 # TAB 2: AI ANALYSIS
 with tab2:
     st.header("AI Profile Analysis")
+    
+    st.markdown("""
+    <div class="info-box">
+        <div class="info-box-title">🤖 What This Does</div>
+        <div class="info-box-text">
+            Our AI analyzes your CV to provide comprehensive career insights including:
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li><strong>Target Roles:</strong> 3-4 job titles that match your background</li>
+                <li><strong>Key Skills:</strong> Technical and soft skills identified in your CV</li>
+                <li><strong>Top Strengths:</strong> Your competitive advantages</li>
+                <li><strong>Areas for Improvement:</strong> Constructive feedback to enhance your CV</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="steps-box">
+        <div class="steps-box-title">✅ How to Use</div>
+        <div class="steps-box-text">
+            <strong>Step 1:</strong> Ensure you've uploaded your CV in the "CV Upload" tab<br>
+            <strong>Step 2:</strong> Click "Analyze My Profile" button below<br>
+            <strong>Step 3:</strong> Wait for AI analysis (usually takes 5-10 seconds)<br>
+            <strong>Step 4:</strong> Review the insights and use them to guide your job search
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     if not st.session_state.cv_text:
-        st.warning("⚠️ Please upload your CV first.")
+        st.warning("⚠️ Please upload your CV in the first tab before analyzing.")
     else:
         if st.button("🎯 Analyze My Profile", key="btn_analyze", type="primary", use_container_width=True, disabled=st.session_state.is_processing):
             st.session_state.is_processing = True
             
-            # Progress container
             progress_container = st.container()
             with progress_container:
                 st.markdown('<div class="loading-text">⏳ Initializing AI analysis...</div>', unsafe_allow_html=True)
@@ -229,7 +297,35 @@ with tab2:
 # TAB 3: JOB MATCHING
 with tab3:
     st.header("AI-Powered Job Matching")
-    st.markdown('<p class="text-muted">Find jobs that match your skills and experience</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+        <div class="info-box-title">💼 What This Does</div>
+        <div class="info-box-text">
+            Search and discover job opportunities that match your skills and experience:
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li><strong>Smart Matching:</strong> AI calculates match scores based on your CV</li>
+                <li><strong>Real Jobs:</strong> Live job listings from major job boards</li>
+                <li><strong>Save Jobs:</strong> Bookmark interesting positions for later</li>
+                <li><strong>Export:</strong> Download saved jobs to Excel for tracking</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="steps-box">
+        <div class="steps-box-title">✅ How to Use</div>
+        <div class="steps-box-text">
+            <strong>Step 1:</strong> Enter your target job title (e.g., "Strategy Consultant", "Business Analyst")<br>
+            <strong>Step 2:</strong> Specify location (e.g., "Remote", "New York", or leave blank for any)<br>
+            <strong>Step 3:</strong> Click "Search Jobs" button<br>
+            <strong>Step 4:</strong> Review results and click "Save" on jobs you're interested in<br>
+            <strong>Step 5:</strong> View full details by expanding each job listing<br>
+            <strong>Step 6:</strong> Use saved jobs for CV rewriting and cover letters
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     if JSearchClient is None:
         st.error("Job matching module not loaded")
@@ -396,7 +492,35 @@ with tab3:
 # TAB 4: CV REWRITE
 with tab4:
     st.header("✍️ AI CV Rewriting")
-    st.markdown('<p class="text-muted">Optimize your CV for specific job descriptions</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+        <div class="info-box-title">✨ What This Does</div>
+        <div class="info-box-text">
+            Optimize your CV to match specific job descriptions:
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li><strong>Keyword Optimization:</strong> Highlights relevant skills and experience</li>
+                <li><strong>Tailored Content:</strong> Rewrites your CV for each specific role</li>
+                <li><strong>ATS-Friendly:</strong> Improves chances of passing automated screening</li>
+                <li><strong>Professional Tone:</strong> Ensures polished, industry-appropriate language</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="steps-box">
+        <div class="steps-box-title">✅ How to Use</div>
+        <div class="steps-box-text">
+            <strong>Step 1:</strong> Choose "Select from saved jobs" if you have jobs saved, or "Paste manually" to enter a job description<br>
+            <strong>Step 2:</strong> If using saved jobs, select the job from the dropdown menu<br>
+            <strong>Step 3:</strong> If pasting manually, copy and paste the full job description<br>
+            <strong>Step 4:</strong> Click "Rewrite My CV" button<br>
+            <strong>Step 5:</strong> Review the optimized CV and download it<br>
+            <strong>Step 6:</strong> <em>Important:</em> Edit the output to ensure it accurately reflects your experience before using
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
@@ -411,7 +535,8 @@ with tab4:
             job_desc = st.session_state.saved_jobs[idx].get("job_description", "")
             st.info(f"📄 Using: {sel}")
         else:
-            job_desc = st.text_area("Paste job description:", height=150, key="rewrite_desc")
+            job_desc = st.text_area("Paste job description:", height=150, key="rewrite_desc", 
+                                   placeholder="Copy and paste the full job description here...")
         
         if st.button("✨ Rewrite My CV", key="btn_rewrite", type="primary", use_container_width=True, disabled=st.session_state.is_processing):
             if job_desc:
@@ -465,7 +590,35 @@ with tab4:
 # TAB 5: COVER LETTER
 with tab5:
     st.header("📧 AI Cover Letter Generator")
-    st.markdown('<p class="text-muted">Generate personalized cover letters in seconds</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+        <div class="info-box-title">✉️ What This Does</div>
+        <div class="info-box-text">
+            Generate personalized, professional cover letters in seconds:
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+                <li><strong>Personalized Content:</strong> Tailored to each specific job and company</li>
+                <li><strong>Professional Tone:</strong> Industry-appropriate language and formatting</li>
+                <strong>Skills Highlighting:</strong> Emphasizes your most relevant qualifications</li>
+                <li><strong>Time-Saving:</strong> Creates a first draft in seconds</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="steps-box">
+        <div class="steps-box-title">✅ How to Use</div>
+        <div class="steps-box-text">
+            <strong>Step 1:</strong> Choose "Select from saved jobs" if you have jobs saved, or "Enter manually" to input details<br>
+            <strong>Step 2:</strong> If using saved jobs, select the job from the dropdown menu<br>
+            <strong>Step 3:</strong> If entering manually, fill in company name, job title, and optionally paste the job description<br>
+            <strong>Step 4:</strong> Click "Generate Cover Letter" button<br>
+            <strong>Step 5:</strong> Review the generated cover letter<br>
+            <strong>Step 6:</strong> <em>Important:</em> Edit the output to personalize it further, add specific examples from your experience, and ensure accuracy before sending to employers
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
@@ -488,7 +641,8 @@ with tab5:
             c1, c2 = st.columns(2)
             with c1: company = st.text_input("Company Name", key="cl_comp")
             with c2: title = st.text_input("Job Title", key="cl_title")
-            job_desc = st.text_area("Job Description", height=150, key="cl_desc")
+            job_desc = st.text_area("Job Description", height=150, key="cl_desc", 
+                                   placeholder="Paste job description for more targeted letter (optional)...")
         
         if st.button("✍️ Generate Cover Letter", key="btn_cl", type="primary", use_container_width=True, disabled=st.session_state.is_processing):
             if company and title:
