@@ -8,7 +8,7 @@ st.markdown("### Get in Touch")
 st.write("We value your feedback! Whether you have a feature request, found a bug, or just want to share your success story, we'd love to hear from you.")
 
 st.markdown("### How to Reach Us")
-st.markdown("- **Email:** career.aisupport@gmail.com")
+st.markdown("- **Email:** info@careeraisupport.org")
 st.markdown("- **Feedback Form:** Please use the form below to send us a message directly.")
 st.write("We strive to respond to all inquiries within 48 hours. Thank you for being part of our community!")
 
