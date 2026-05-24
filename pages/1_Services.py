@@ -392,6 +392,8 @@ with tab3:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.warning("⚠️ **Job listings are sourced from third-party APIs. We do not verify accuracy, availability, or legitimacy of postings. Always research employers before applying.**")
     
     if JSearchClient is None:
         st.error("Job matching module not loaded")
@@ -588,6 +590,8 @@ with tab4:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.warning("⚠️ **AI-generated content is a draft. Always review, edit, and personalize before submitting to employers.**")
     
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
@@ -687,6 +691,8 @@ with tab5:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.warning("⚠️ **AI-generated cover letters are starting points. Always customize with specific examples and verify company details before sending.**")
     
     if not st.session_state.cv_text:
         st.warning("⚠️ Please upload your CV first.")
