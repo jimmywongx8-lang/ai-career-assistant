@@ -770,7 +770,7 @@ with tab5:
                         st.session_state.is_processing = False
 
 # ==========================================
-# PROFESSIONAL FOOTER
+# PROFESSIONAL FOOTER (UPDATED)
 # ==========================================
 st.markdown("""
 <div class="footer">
@@ -782,30 +782,28 @@ st.markdown("""
         <div class="footer-col">
             <h4>Services</h4>
             <ul>
-                <li><a href="#">Job Matching</a></li>
-                <li><a href="#">CV Analysis</a></li>
-                <li><a href="#">CV Optimization</a></li>
-                <li><a href="#">Cover Letters</a></li>
+                <li><a href="/About">Our Services</a></li>
+                <li><a href="/About">Job Matching</a></li>
+                <li><a href="/About">CV Analysis</a></li>
+                <li><a href="/About">Cover Letters</a></li>
             </ul>
         </div>
         <div class="footer-col">
             <h4>Legal</h4>
             <ul>
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
+                <li><a href="/Privacy">Privacy Policy</a></li>
+                <li><a href="/Terms">Terms of Service</a></li>
             </ul>
         </div>
         <div class="footer-col">
             <h4>Connect</h4>
             <ul>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">LinkedIn</a></li>
-                <li><a href="#">Twitter</a></li>
+                <li><a href="/Contact">Contact Us</a></li>
             </ul>
         </div>
     </div>
     <div class="footer-bottom">
-        <p>© 2026 Career Compass. All rights reserved.</p>
+        <p>© 2026 Career Compass. A Community Project. All rights reserved.</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
