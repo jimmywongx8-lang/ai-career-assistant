@@ -15,7 +15,9 @@ except ImportError:
 
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-# PROFESSIONAL UI THEME
+# ==========================================
+# PHASE 2: MOBILE RESPONSIVENESS & FOOTER
+# ==========================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -23,6 +25,7 @@ st.markdown("""
     body, .stApp { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
     h1, h2, h3 { font-weight: 600; letter-spacing: -0.025em; }
     
+    /* Tabs Styling */
     .stTabs [data-baseweb="tab-list"] { gap: 6px; background: transparent; }
     .stTabs [data-baseweb="tab"] { 
         height: 42px; white-space: pre-wrap; background-color: #FFFFFF; 
@@ -34,6 +37,7 @@ st.markdown("""
         font-weight: 600; border-bottom: 3px solid #4F46E5 !important;
     }
     
+    /* Job Cards */
     .job-card { 
         background: #FFFFFF; border-radius: 12px; padding: 20px 24px; 
         margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03); 
@@ -53,26 +57,28 @@ st.markdown("""
     .job-meta { font-size: 0.875rem; color: #64748B; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .job-meta span { display: flex; align-items: center; gap: 5px; }
     
+    /* Badges */
     .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.025em; }
     .badge-excellent { background-color: #D1FAE5; color: #065F46; }
     .badge-good { background-color: #FEF3C7; color: #92400E; }
     .badge-match { background-color: #E2E8F0; color: #475569; }
     
+    /* Buttons & Inputs */
     .stButton button { border-radius: 8px !important; font-weight: 500 !important; transition: all 0.2s !important; border: none !important; }
     .stButton button:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
     .stTextInput div, .stSelectbox div, .stTextArea div { border-radius: 8px !important; border: 1px solid #E2E8F0 !important; }
     .stTextInput div:focus-within, .stSelectbox div:focus-within, .stTextArea div:focus-within { border-color: #4F46E5 !important; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important; }
     
+    /* Expander */
     .streamlit-expanderHeader { border-radius: 8px !important; background-color: #F8FAFC !important; border: 1px solid #E2E8F0 !important; }
     .streamlit-expanderHeader:hover { background-color: #F1F5F9 !important; }
     .streamlit-expanderContent { border-radius: 0 0 8px 8px !important; border: 1px solid #E2E8F0 !important; border-top: none !important; }
     
+    /* Sidebar */
     .css-1d391kg { background-color: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; }
     .stSidebar > div { padding-top: 2rem !important; }
     
-    .divider { height: 1px; background-color: #E2E8F0; margin: 20px 0; }
-    .text-muted { color: #64748B; font-size: 0.875rem; }
-    
+    /* Info Boxes */
     .info-box { 
         background-color: #EFF6FF; border-left: 4px solid #3B82F6; 
         padding: 16px 20px; border-radius: 8px; margin: 16px 0; 
@@ -87,11 +93,86 @@ st.markdown("""
     .steps-box-title { font-weight: 600; color: #065F46; margin-bottom: 8px; }
     .steps-box-text { color: #065F46; line-height: 1.6; }
     
+    /* Loading Animation */
     @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
     }
     .loading-text { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+    /* ========================================== */
+    /* MOBILE RESPONSIVENESS                      */
+    /* ========================================== */
+    @media (max-width: 768px) {
+        .hero-section { padding: 24px 20px !important; }
+        .hero-title { font-size: 1.75rem !important; }
+        .job-card { padding: 16px !important; }
+        .job-meta { flex-direction: column; align-items: flex-start; gap: 4px; }
+        .stTabs [data-baseweb="tab"] { padding: 0 10px !important; font-size: 0.85rem; }
+        
+        /* Stack columns on mobile */
+        .row-widget.stHorizontal { flex-direction: column !important; }
+        .row-widget.stHorizontal > div { width: 100% !important; }
+        
+        /* Fix sidebar overflow */
+        .stSidebar { width: 300px !important; }
+    }
+
+    /* Professional Footer */
+    .footer {
+        background-color: #F8FAFC;
+        padding: 40px 0;
+        margin-top: 60px;
+        border-top: 1px solid #E2E8F0;
+        color: #64748B;
+        font-size: 0.875rem;
+    }
+    .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+    .footer-col h4 {
+        color: #0F172A;
+        font-weight: 600;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .footer-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .footer-col li {
+        margin-bottom: 10px;
+    }
+    .footer-col a {
+        color: #64748B;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .footer-col a:hover {
+        color: #4F46E5;
+    }
+    .footer-bottom {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #E2E8F0;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Mobile Footer */
+    @media (max-width: 768px) {
+        .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -157,6 +238,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼
 # TAB 1: CV UPLOAD
 with tab1:
     st.header("Upload Your CV")
+    st.markdown('<p class="text-muted">Upload your CV to get started with AI-powered career tools</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-box">
@@ -216,6 +298,7 @@ with tab1:
 # TAB 2: AI ANALYSIS
 with tab2:
     st.header("AI Profile Analysis")
+    st.markdown('<p class="text-muted">Get AI-powered insights about your CV</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-box">
@@ -297,6 +380,7 @@ with tab2:
 # TAB 3: JOB MATCHING
 with tab3:
     st.header("AI-Powered Job Matching")
+    st.markdown('<p class="text-muted">Find jobs that match your skills and experience</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-box">
@@ -492,6 +576,7 @@ with tab3:
 # TAB 4: CV REWRITE
 with tab4:
     st.header("✍️ AI CV Rewriting")
+    st.markdown('<p class="text-muted">Optimize your CV for specific job descriptions</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-box">
@@ -590,6 +675,7 @@ with tab4:
 # TAB 5: COVER LETTER
 with tab5:
     st.header("📧 AI Cover Letter Generator")
+    st.markdown('<p class="text-muted">Generate personalized cover letters in seconds</p>', unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-box">
@@ -599,7 +685,7 @@ with tab5:
             <ul style="margin: 8px 0 0 20px; padding: 0;">
                 <li><strong>Personalized Content:</strong> Tailored to each specific job and company</li>
                 <li><strong>Professional Tone:</strong> Industry-appropriate language and formatting</li>
-                <strong>Skills Highlighting:</strong> Emphasizes your most relevant qualifications</li>
+                <li><strong>Skills Highlighting:</strong> Emphasizes your most relevant qualifications</li>
                 <li><strong>Time-Saving:</strong> Creates a first draft in seconds</li>
             </ul>
         </div>
@@ -693,5 +779,43 @@ with tab5:
                         st.error(f"Generation failed: {e}")
                         st.session_state.is_processing = False
 
-# FOOTER
-st.markdown('<div style="text-align: center; color: #64748B; margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0;">Made with ❤️ using AI</div>', unsafe_allow_html=True)
+# ==========================================
+# PROFESSIONAL FOOTER
+# ==========================================
+st.markdown("""
+<div class="footer">
+    <div class="footer-grid">
+        <div class="footer-col">
+            <h4>🧭 Career Compass</h4>
+            <p style="line-height: 1.6;">AI-powered tools to accelerate your career journey. Find jobs, optimize your CV, and generate cover letters in seconds.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Product</h4>
+            <ul>
+                <li><a href="#">Features</a></li>
+                <li><a href="#">Pricing</a></li>
+                <li><a href="#">API</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Support</h4>
+            <ul>
+                <li><a href="#">Help Center</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">Status</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Legal</h4>
+            <ul>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+                <li><a href="#">Cookie Policy</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2026 Career Compass. All rights reserved.</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
