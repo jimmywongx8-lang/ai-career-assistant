@@ -16,7 +16,7 @@ except ImportError:
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
 # ==========================================
-# PHASE 2: MOBILE RESPONSIVENESS & FOOTER
+# THEME & STYLING
 # ==========================================
 st.markdown("""
 <style>
@@ -100,25 +100,20 @@ st.markdown("""
     }
     .loading-text { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-    /* ========================================== */
-    /* MOBILE RESPONSIVENESS                      */
-    /* ========================================== */
+    /* Mobile Responsiveness */
     @media (max-width: 768px) {
         .hero-section { padding: 24px 20px !important; }
         .hero-title { font-size: 1.75rem !important; }
         .job-card { padding: 16px !important; }
         .job-meta { flex-direction: column; align-items: flex-start; gap: 4px; }
         .stTabs [data-baseweb="tab"] { padding: 0 10px !important; font-size: 0.85rem; }
-        
-        /* Stack columns on mobile */
         .row-widget.stHorizontal { flex-direction: column !important; }
         .row-widget.stHorizontal > div { width: 100% !important; }
-        
-        /* Fix sidebar overflow */
         .stSidebar { width: 300px !important; }
+        .footer-grid { grid-template-columns: 1fr; gap: 24px; }
     }
 
-    /* Professional Footer */
+    /* Footer */
     .footer {
         background-color: #F8FAFC;
         padding: 40px 0;
@@ -167,11 +162,6 @@ st.markdown("""
         max-width: 1200px;
         margin-left: auto;
         margin-right: auto;
-    }
-    
-    /* Mobile Footer */
-    @media (max-width: 768px) {
-        .footer-grid { grid-template-columns: 1fr; gap: 24px; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -790,19 +780,12 @@ st.markdown("""
             <p style="line-height: 1.6;">AI-powered tools to accelerate your career journey. Find jobs, optimize your CV, and generate cover letters in seconds.</p>
         </div>
         <div class="footer-col">
-            <h4>Product</h4>
+            <h4>Services</h4>
             <ul>
-                <li><a href="#">Features</a></li>
-                <li><a href="#">Pricing</a></li>
-                <li><a href="#">API</a></li>
-            </ul>
-        </div>
-        <div class="footer-col">
-            <h4>Support</h4>
-            <ul>
-                <li><a href="#">Help Center</a></li>
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Status</a></li>
+                <li><a href="#">Job Matching</a></li>
+                <li><a href="#">CV Analysis</a></li>
+                <li><a href="#">CV Optimization</a></li>
+                <li><a href="#">Cover Letters</a></li>
             </ul>
         </div>
         <div class="footer-col">
@@ -810,7 +793,14 @@ st.markdown("""
             <ul>
                 <li><a href="#">Privacy Policy</a></li>
                 <li><a href="#">Terms of Service</a></li>
-                <li><a href="#">Cookie Policy</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <h4>Connect</h4>
+            <ul>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">LinkedIn</a></li>
+                <li><a href="#">Twitter</a></li>
             </ul>
         </div>
     </div>
