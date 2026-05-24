@@ -14,59 +14,30 @@ except ImportError:
 
 st.set_page_config(page_title="Career Compass", page_icon="🧭", layout="wide")
 
-# ==========================================
-# PHASE 1: PROFESSIONAL UI THEME & STYLING
-# ==========================================
+# PROFESSIONAL UI THEME
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    /* Global Reset & Typography */
     body, .stApp { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
     h1, h2, h3 { font-weight: 600; letter-spacing: -0.025em; }
     
-    /* Tabs Styling */
     .stTabs [data-baseweb="tab-list"] { gap: 6px; background: transparent; }
     .stTabs [data-baseweb="tab"] { 
-        height: 42px; 
-        white-space: pre-wrap; 
-        background-color: #FFFFFF; 
-        border-radius: 10px 10px 0 0; 
-        font-weight: 500; 
-        color: #64748B; 
-        border: none !important;
-        padding: 0 16px !important;
+        height: 42px; white-space: pre-wrap; background-color: #FFFFFF; 
+        border-radius: 10px 10px 0 0; font-weight: 500; color: #64748B; 
+        border: none !important; padding: 0 16px !important;
     }
     .stTabs [aria-selected="true"] { 
-        background-color: #FFFFFF !important; 
-        color: #4F46E5 !important; 
-        font-weight: 600; 
-        border-bottom: 3px solid #4F46E5 !important;
+        background-color: #FFFFFF !important; color: #4F46E5 !important; 
+        font-weight: 600; border-bottom: 3px solid #4F46E5 !important;
     }
     
-    /* Hero Section */
-    .hero-section { 
-        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); 
-        padding: 32px 28px; 
-        border-radius: 16px; 
-        margin-bottom: 24px; 
-        color: white; 
-        box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25); 
-    }
-    .hero-title { font-size: 2.25rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.02em; }
-    .hero-subtitle { font-size: 1.05rem; font-weight: 400; opacity: 0.9; margin: 0; }
-    
-    /* Job Cards - Modern SaaS Style */
     .job-card { 
-        background: #FFFFFF; 
-        border-radius: 12px; 
-        padding: 20px 24px; 
-        margin-bottom: 16px; 
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03); 
+        background: #FFFFFF; border-radius: 12px; padding: 20px 24px; 
+        margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03); 
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
-        border: 1px solid #E2E8F0; 
-        position: relative; 
-        overflow: hidden; 
+        border: 1px solid #E2E8F0; position: relative; overflow: hidden; 
     }
     .job-card:hover { 
         transform: translateY(-3px); 
@@ -74,40 +45,30 @@ st.markdown("""
         border-color: #CBD5E1; 
     }
     .job-card::before { 
-        content: ''; 
-        position: absolute; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        height: 3px; 
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; 
         background: linear-gradient(90deg, #4F46E5, #8B5CF6); 
     }
     .job-title { font-size: 1.2rem; font-weight: 600; color: #0F172A; margin: 0 0 6px 0; }
     .job-meta { font-size: 0.875rem; color: #64748B; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .job-meta span { display: flex; align-items: center; gap: 5px; }
     
-    /* Badges */
     .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; margin-top: 10px; text-transform: uppercase; letter-spacing: 0.025em; }
     .badge-excellent { background-color: #D1FAE5; color: #065F46; }
     .badge-good { background-color: #FEF3C7; color: #92400E; }
     .badge-match { background-color: #E2E8F0; color: #475569; }
     
-    /* Buttons & Inputs */
     .stButton button { border-radius: 8px !important; font-weight: 500 !important; transition: all 0.2s !important; border: none !important; }
     .stButton button:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
     .stTextInput div, .stSelectbox div, .stTextArea div { border-radius: 8px !important; border: 1px solid #E2E8F0 !important; }
     .stTextInput div:focus-within, .stSelectbox div:focus-within, .stTextArea div:focus-within { border-color: #4F46E5 !important; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important; }
     
-    /* Expander */
     .streamlit-expanderHeader { border-radius: 8px !important; background-color: #F8FAFC !important; border: 1px solid #E2E8F0 !important; }
     .streamlit-expanderHeader:hover { background-color: #F1F5F9 !important; }
     .streamlit-expanderContent { border-radius: 0 0 8px 8px !important; border: 1px solid #E2E8F0 !important; border-top: none !important; }
     
-    /* Sidebar Polish */
     .css-1d391kg { background-color: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; }
     .stSidebar > div { padding-top: 2rem !important; }
     
-    /* Utility */
     .divider { height: 1px; background-color: #E2E8F0; margin: 20px 0; }
     .text-muted { color: #64748B; font-size: 0.875rem; }
 </style>
@@ -122,8 +83,16 @@ if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 
 # ==========================================
-# SIDEBAR: SAVED JOBS & EXPORT
+# HERO SECTION - MUST BE BEFORE TABS!
 # ==========================================
+st.markdown("""
+<div style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); padding: 32px 28px; border-radius: 16px; margin-bottom: 24px; color: white; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25);">
+    <div style="font-size: 2.25rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.02em;">🧭 Career Compass</div>
+    <div style="font-size: 1.05rem; font-weight: 400; opacity: 0.9; margin: 0;">AI-powered tools to accelerate your career journey</div>
+</div>
+""", unsafe_allow_html=True)
+
+# SIDEBAR
 with st.sidebar:
     st.markdown("### 💼 Saved Jobs")
     if st.session_state.saved_jobs:
@@ -161,18 +130,8 @@ with st.sidebar:
     else:
         st.markdown('<p class="text-muted">No saved jobs yet. Click 💾 on jobs you like!</p>', unsafe_allow_html=True)
 
-# ==========================================
-# MAIN CONTENT
-# ==========================================
+# TABS - NOW AFTER HERO
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 CV Upload", "🔍 Analysis", "💼 Jobs", "✍️ CV Rewrite", "📧 Cover Letter"])
-
-# HERO SECTION
-st.markdown("""
-<div class="hero-section">
-    <div class="hero-title">🧭 Career Compass</div>
-    <div class="hero-subtitle">AI-powered tools to accelerate your career journey</div>
-</div>
-""", unsafe_allow_html=True)
 
 # TAB 1: CV UPLOAD
 with tab1:
@@ -228,7 +187,6 @@ with tab3:
         with col2:
             location = st.text_input("Location", placeholder="Remote, New York", key="location")
         
-        # Smart skill detection
         detected = []
         if st.session_state.cv_text:
             cv_lower = st.session_state.cv_text.lower()
@@ -244,7 +202,6 @@ with tab3:
                 client = JSearchClient(api_key=st.secrets.get("JSEARCH_API_KEY", ""))
                 results = client.search_jobs(query=query, location=location if location else None, user_skills=detected)
                 
-                # Strip Streamlit objects
                 jobs_data = results.get("data", [])
                 jobs_json = json.dumps(jobs_data, default=str)
                 clean_results = json.loads(jobs_json)
@@ -269,7 +226,6 @@ with tab3:
                 apply_url = str(job.get("job_apply_link", "#"))
                 score = float(job.get("career_compass_match_score", 0))
                 
-                # Badge logic
                 if score >= 0.7:
                     badge_class, badge_text = "excellent", "🟢 Excellent Match"
                 elif score >= 0.4:
@@ -280,7 +236,6 @@ with tab3:
                 is_saved = any(str(s.get("job_title")) == title and str(s.get("employer_name")) == company 
                               for s in st.session_state.saved_jobs)
                 
-                # Render Job Card
                 st.markdown(f"""
                 <div class="job-card">
                     <div class="job-title">{title}</div>
@@ -292,7 +247,6 @@ with tab3:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Save Button Row
                 c1, c2 = st.columns([4, 1])
                 with c1:
                     if is_saved:
@@ -317,7 +271,6 @@ with tab3:
                             })
                         st.rerun()
                 
-                # Job Details Expander
                 with st.expander("📋 View Full Job Details"):
                     st.markdown("**📝 Job Description**")
                     st.write(str(job.get("job_description", "No description available")))
@@ -424,4 +377,5 @@ with tab5:
                     except Exception as e:
                         st.error(f"Generation failed: {e}")
 
+# FOOTER
 st.markdown('<div style="text-align: center; color: #64748B; margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0;">Made with ❤️ using AI</div>', unsafe_allow_html=True)
