@@ -1,0 +1,9 @@
+streamlit
+groq
+python-dotenv
+PyPDF2
+PyMuPDF
+python-docx
+fpdf2
+reportlab
+requests
