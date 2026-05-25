@@ -278,7 +278,7 @@ with st.sidebar:
                     try:
                         # Create email
                         msg = MIMEMultipart()
-                        msg['From'] = "info@careeraisupport.org"
+                        msg['From'] = "careeraisupport@gmail.com"
                         msg['To'] = user_email
                         msg['Subject'] = "🧭 Your Saved Jobs from Career Compass"
                         
