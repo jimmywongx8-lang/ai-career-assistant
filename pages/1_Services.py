@@ -309,7 +309,7 @@ https://careeraisupport.streamlit.app"""
                         
                         st.success(f"✅ Jobs sent to {user_email}!")
                     except Exception as e:
-                        st.error("Failed to send email. Please try downloading the CSV instead.")
+                        st.error(f"Failed: {str(e)}")  # This shows the REAL error
                 else:
                     st.warning("No jobs saved yet.")
             else:
