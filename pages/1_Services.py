@@ -5,12 +5,6 @@ import json
 import hashlib
 import pandas as pd
 import time
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-import io
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -164,42 +158,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# BROWSER LOCALSTORAGE PERSISTENCE
-# ==========================================
-import streamlit.components.v1 as components
-
-# Inject JavaScript for localStorage sync
-components.html("""
-<script>
-// Auto-save saved_jobs to localStorage
-function saveJobs() {
-    const savedJobsElement = document.querySelector('#saved-jobs-data');
-    if (savedJobsElement) {
-        const jobsData = savedJobsElement.getAttribute('data-jobs');
-        if (jobsData) {
-            localStorage.setItem('cc_saved_jobs', jobsData);
-        }
-    }
-}
-
-// Auto-load saved_jobs from localStorage on page load
-window.addEventListener('load', function() {
-    const stored = localStorage.getItem('cc_saved_jobs');
-    if (stored) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.id = 'cc-load-jobs';
-        input.value = stored;
-        document.body.appendChild(input);
-    }
-});
-
-// Save when session state changes
-setInterval(saveJobs, 2000);
-</script>
-""", height=0)
-
 # Initialize session state
 if "saved_jobs" not in st.session_state:
     st.session_state.saved_jobs = []
@@ -209,16 +167,6 @@ if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
-
-# Check for localStorage data
-load_jobs_element = st.empty()
-if hasattr(st, 'session_state'):
-    try:
-        # This is a workaround - in practice, you'd use streamlit-js-eval package
-        # For now, we'll just use session state
-        pass
-    except:
-        pass
 
 # HERO SECTION
 st.markdown("""
@@ -243,7 +191,8 @@ with st.sidebar:
                     st.rerun()
         
         st.divider()
-        st.markdown("### 📤 Export & Email Jobs")
+        st.markdown("### 📤 Export Jobs")
+        st.markdown('<p class="text-muted" style="font-size:0.85rem;">Download your saved jobs to track your applications</p>', unsafe_allow_html=True)
         
         # Prepare export data
         export_data = []
@@ -253,70 +202,24 @@ with st.sidebar:
                 "Company": job.get("employer_name", ""),
                 "Location": f"{job.get('job_city', '')} {job.get('job_state', '')}".strip(),
                 "Match Score": f"{job.get('career_compass_match_score', 0) * 100:.0f}%",
-                "Skills": ", ".join(job.get("job_required_skills", [])[:5]),
                 "Apply Link": job.get("job_apply_link", "#")
             })
         df = pd.DataFrame(export_data)
         csv = df.to_csv(index=False)
         
-        # CSV Download
+        # CSV Download Button
         st.download_button(
-            "📥 Download CSV", 
-            data=csv, 
-            file_name="saved_jobs.csv", 
-            mime="text/csv", 
-            use_container_width=True
+            "📥 Download Jobs as CSV",
+            data=csv,
+            file_name="my_saved_jobs.csv",
+            mime="text/csv",
+            use_container_width=True,
+            type="primary"
         )
         
-        # Email feature
-        st.markdown('<p class="text-muted" style="font-size:0.8rem; margin:8px 0;">Or email jobs to your inbox</p>', unsafe_allow_html=True)
-        user_email = st.text_input("", placeholder="you@example.com", key="email_jobs_input", label_visibility="collapsed")
-        
-        if st.button("📧 Email My Jobs", key="email_jobs_btn", use_container_width=True):
-            if user_email and "@" in user_email:
-                if len(st.session_state.saved_jobs) > 0:
-                    try:
-                        # Create email
-                        msg = MIMEMultipart()
-                        msg['From'] = "careeraisupport@gmail.com"
-                        msg['To'] = user_email
-                        msg['Subject'] = "🧭 Your Saved Jobs from Career Compass"
-                        
-                        body = f"""Hi there!
-
-Here are the {len(st.session_state.saved_jobs)} jobs you saved on Career Compass. Good luck with your applications! 🚀
-
-— The Career Compass Team
-https://careeraisupport.streamlit.app"""
-                        
-                        msg.attach(MIMEText(body, 'plain'))
-                        
-                        # Attach CSV
-                        csv_buffer = io.StringIO()
-                        df.to_csv(csv_buffer, index=False)
-                        part = MIMEBase('application', 'octet-stream')
-                        part.set_payload(csv_buffer.getvalue().encode())
-                        encoders.encode_base64(part)
-                        part.add_header('Content-Disposition', 'attachment', filename="career_compass_jobs.csv")
-                        msg.attach(part)
-                        
-                        # Send via Gmail SMTP
-                        server = smtplib.SMTP('smtp.gmail.com', 587)
-                        server.starttls()
-                        server.login(st.secrets["GMAIL_USER"], st.secrets["GMAIL_APP_PASSWORD"])
-                        server.send_message(msg)
-                        server.quit()
-                        
-                        st.success(f"✅ Jobs sent to {user_email}!")
-                    except Exception as e:
-                        st.error(f"Failed: {str(e)}")  # This shows the REAL error
-                else:
-                    st.warning("No jobs saved yet.")
-            else:
-                st.warning("Please enter a valid email address.")
+        st.info("💡 **Tip:** Download the CSV and email it to yourself for easy tracking!")
         
         st.divider()
-        
         if st.button("🗑️ Clear All", key="clear_all", use_container_width=True):
             st.session_state.saved_jobs = []
             st.rerun()
