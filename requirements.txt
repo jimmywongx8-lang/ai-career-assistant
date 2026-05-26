@@ -1,3 +1,4 @@
+streamlit-analytics==0.2.0
 streamlit
 groq
 python-dotenv
@@ -7,3 +8,4 @@ python-docx
 fpdf2
 reportlab
 requests
+streamlit_analytics
