@@ -167,6 +167,8 @@ if "cv_text" not in st.session_state:
     st.session_state.cv_text = ""
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
+if "search_count" not in st.session_state:
+    st.session_state.search_count = 0
 
 # HERO SECTION
 st.markdown("""
@@ -178,6 +180,16 @@ st.markdown("""
 
 # SIDEBAR
 with st.sidebar:
+    # --- SESSION METRICS ---
+    st.markdown("### 📊 Your Session")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("💼 Jobs Saved", len(st.session_state.saved_jobs))
+    with col2:
+        st.metric("🔍 Searches", st.session_state.search_count)
+    st.divider()
+    # --- END METRICS ---
+    
     st.markdown("### 💼 Saved Jobs")
     if st.session_state.saved_jobs:
         st.markdown(f'<div style="background:#D1FAE5; color:#065F46; padding:8px 12px; border-radius:8px; font-size:0.875rem; font-weight:500;">✅ {len(st.session_state.saved_jobs)} jobs saved</div>', unsafe_allow_html=True)
@@ -426,6 +438,7 @@ with tab3:
                 st.info(f"💡 **Detected Skills:** {', '.join(detected)}")
         
         if st.button("🔍 Search Jobs", key="btn_search", type="primary", use_container_width=True, disabled=st.session_state.is_processing):
+            st.session_state.search_count += 1  # ← TRACK SEARCH
             query = target_role.strip() if target_role else "consultant"
             st.session_state.is_processing = True
             
