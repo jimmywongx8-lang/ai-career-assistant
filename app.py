@@ -10,32 +10,31 @@ st.set_page_config(
 )
 
 # --- GOOGLE ANALYTICS TRACKING ---
-# Replace G-XXXXXXXXXX with your actual Measurement ID
 GA_MEASUREMENT_ID = "G-B362M9K6WR"
 
-components.html(f"""
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
-  gtag('js', new Date());
-  gtag('config', '{GA_MEASUREMENT_ID}');
-  
-  // Track page views
-  document.addEventListener('click', function(e) {{
-    if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {{
-      gtag('event', 'click', {{
-        'event_category': 'UI',
-        'event_label': e.target.innerText || e.target.href
+st.markdown(
+    f"""
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', '{GA_MEASUREMENT_ID}');
+      
+      // Track clicks
+      document.addEventListener('click', function(e) {{
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {{
+          gtag('event', 'click', {{
+            'event_category': 'UI',
+            'event_label': e.target.innerText || e.target.href || 'button'
+          }});
+        }}
       }});
-    }}
-  }});
-</script>
-""", height=0)
-
-# --- REST OF YOUR APP ---
-# (Keep all your existing code below)
+    </script>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- STYLING ---
 st.markdown("""
