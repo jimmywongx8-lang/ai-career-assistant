@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -9,31 +8,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- GOOGLE ANALYTICS TRACKING ---
+# --- GOOGLE ANALYTICS VIA COMPONENT ---
 GA_MEASUREMENT_ID = "G-B362M9K6WR"
 
-st.markdown(
+# Inject GA using HTML component (more reliable)
+st.components.v1.html(
     f"""
-    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
       gtag('js', new Date());
       gtag('config', '{GA_MEASUREMENT_ID}');
-      
-      // Track clicks
-      document.addEventListener('click', function(e) {{
-        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {{
-          gtag('event', 'click', {{
-            'event_category': 'UI',
-            'event_label': e.target.innerText || e.target.href || 'button'
-          }});
-        }}
-      }});
     </script>
     """,
-    unsafe_allow_html=True
+    height=0,
+    width=0
 )
 
 # --- STYLING ---
