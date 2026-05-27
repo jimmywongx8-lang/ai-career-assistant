@@ -1,11 +1,5 @@
-streamlit-analytics==0.2.0
-streamlit
-groq
-python-dotenv
-PyPDF2
-PyMuPDF
-python-docx
-fpdf2
-reportlab
-requests
-streamlit_analytics
+streamlit==1.34.0
+groq==0.4.2
+PyPDF2==3.0.1
+pandas==2.2.2
+requests==2.31.0
